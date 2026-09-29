@@ -4,12 +4,15 @@ Support Pack — LuckPatcher-inspired *client-side* lab patterns (no root).
 What this does (APK rebuild path, like LP "create modified APK"):
   - Google Play LVL / LicenseChecker soft gates
   - common signature / installer integrity gates (so re-signed APK can run)
+  - Play Store install-source spoof (getInstallerPackageName + API 30 InstallSourceInfo)
+  - "Get it on Play Store" / sideload gate heuristics (client-side)
   - BillingClient / premium boolean heuristics (best-effort, often fails if server-checked)
 
 What this does NOT do:
   - real Google Play billing / server receipts
   - Play Integrity / SafetyNet server verdicts
   - guaranteed IAP on online games
+  - system-level installer identity (that needs adb -i com.android.vending at install time)
 
 For authorized testing of apps you own or have permission to test.
 """
@@ -111,12 +114,68 @@ def Support_Smali_Pack(smali_folders, *, unlock: bool = True) -> dict:
             "custom signature void checks emptied",
             "signature",
         ),
-        # installer already in core smali; reinforce
+        # ---- Installer / Play Store source (sideload & "Get from Play Store" gates) ----
+        # Classic API (pre-30) — also in core Smali_Patch; reinforce here
         (
-            r"(invoke-virtual \{[^}]*\}, Landroid/content/pm/PackageManager;->getInstallerPackageName\(Ljava/lang/String;\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)",
+            r"(invoke-(?:virtual|interface) \{[^}]*\}, Landroid/content/pm/PackageManager;->getInstallerPackageName\(Ljava/lang/String;\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)",
             r'\1const-string \2, "com.android.vending"',
-            "installer → Play Store",
-            "signature",
+            "getInstallerPackageName → com.android.vending",
+            "installer",
+        ),
+        # Android 11+ PackageManager.getInstallSourceInfo(pkg)
+        (
+            r"(invoke-(?:virtual|interface) \{[^}]*\}, Landroid/content/pm/PackageManager;->getInstallSourceInfo\(Ljava/lang/String;\)Landroid/content/pm/InstallSourceInfo;[^>]*?)move-result-object ([pv]\d+)",
+            r"\1# apkfs: keep InstallSourceInfo object; field reads patched below\n    move-result-object \2",
+            "getInstallSourceInfo marker",
+            "installer",
+        ),
+        # InstallSourceInfo.getInstallingPackageName() / getInitiatingPackageName() / getOriginatingPackageName()
+        (
+            r"(invoke-(?:virtual|interface) \{[^}]*\}, Landroid/content/pm/InstallSourceInfo;->(?:getInstallingPackageName|getInitiatingPackageName|getOriginatingPackageName)\(\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)",
+            r'\1const-string \2, "com.android.vending"',
+            "InstallSourceInfo.*PackageName → Play Store",
+            "installer",
+        ),
+        # Some OEMs / wrappers expose installing package via helper returning String
+        (
+            r"(invoke-\w+ \{[^}]*\}, L[^;]+;->(?:getInstallerPackageName|getInstallingPackageName|getInstallSource|getInstallerName|readInstallerPackageName)\([^)]*\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)",
+            r'\1const-string \2, "com.android.vending"',
+            "helper getInstaller* → Play Store",
+            "installer",
+        ),
+        # Boolean gates: isFromPlayStore / verifyInstaller / etc. → TRUE
+        (
+            r"(\.method [^(]*(?:isInstalledFromPlayStore|isInstalledFromGooglePlay|isFromPlayStore|isFromGooglePlay|isPlayStoreInstall|isPlayStoreInstalled|installedFromPlayStore|installedFromGooglePlay|verifyInstaller|verifyInstallerId|checkInstaller|checkInstallSource|isValidInstaller|isValidInstallSource|isStoreVersion|isStoreInstall|isDownloadFromPlayStore|isGooglePlayInstall|fromPlayStore|fromGooglePlay|hasValidInstaller|hasPlayStoreInstaller)\([^)]*\)Z\s+\.locals \d+)[\s\S]*?(\n.end method)",
+            r"\1\n    const/4 v0, 0x1\n    return v0\2",
+            "Play Store / installer boolean → true",
+            "installer",
+        ),
+        # isSideloaded / unknown-source → FALSE
+        (
+            r"(\.method [^(]*(?:isSideload|isSideLoad|isSideloaded|isSideLoaded|isNonStore|isNotFromPlayStore|isIllegalInstall|isUnofficialInstall|isUnknownSource|isThirdPartyInstall)\([^)]*\)Z\s+\.locals \d+)[\s\S]*?(\n.end method)",
+            r"\1\n    const/4 v0, 0x0\n    return v0\2",
+            "sideload / unknown-source boolean → false",
+            "installer",
+        ),
+        # Boolean object wrappers → TRUE
+        (
+            r"(\.method [^(]*(?:isInstalledFromPlayStore|isFromPlayStore|isPlayStoreInstall|verifyInstaller|isStoreVersion|isValidInstaller)\([^)]*\)Ljava/lang/Boolean;\s+\.locals \d+)[\s\S]*?(\n.end method)",
+            r"\1\n    const/4 v0, 0x1\n    invoke-static {v0}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;\n    move-result-object v0\n    return-object v0\2",
+            "Play Store Boolean → TRUE",
+            "installer",
+        ),
+        # equals("com.android.vending") / feedback — force true after compare
+        (
+            r'(const-string [pv]\d+, "com\.android\.vending"[\s\S]{0,160}?invoke-virtual \{[^}]*\}, Ljava/lang/String;->equals\(Ljava/lang/Object;\)Z[^>]*?)move-result ([pv]\d+)',
+            r"\1const/4 \2, 0x1",
+            "equals(com.android.vending) → true",
+            "installer",
+        ),
+        (
+            r'(const-string [pv]\d+, "com\.google\.android\.feedback"[\s\S]{0,160}?invoke-virtual \{[^}]*\}, Ljava/lang/String;->equals\(Ljava/lang/Object;\)Z[^>]*?)move-result ([pv]\d+)',
+            r"\1const/4 \2, 0x1",
+            "equals(com.google.android.feedback) → true",
+            "installer",
         ),
         # ---- Update nags / force update ----
         (
@@ -262,7 +321,8 @@ def support_score(det_flags: dict, stats: dict | None) -> dict:
     if det_flags.get("flutter") and not det_flags.get("ssl_ok", True):
         reasons.append("Flutter SSL depends on engine patterns")
 
-    if hits >= 8 or tags.get("lvl", 0) + tags.get("unlock", 0) >= 4:
+    inst = tags.get("installer", 0)
+    if hits >= 8 or tags.get("lvl", 0) + tags.get("unlock", 0) >= 4 or inst >= 2:
         score = "green"
         reasons.append(f"strong client-side pattern hits ({hits})")
     elif hits >= 1:
@@ -270,7 +330,10 @@ def support_score(det_flags: dict, stats: dict | None) -> dict:
         reasons.append(f"partial client-side hits ({hits})")
     else:
         score = "red"
-        reasons.append("no LVL/billing smali hits — likely obfuscated or server-side")
+        reasons.append("no LVL/billing/installer smali hits — likely obfuscated or server-side")
+
+    if inst:
+        reasons.append(f"Play Store installer/source spoof hits ({inst})")
 
     if det_flags.get("has_ads"):
         reasons.append("ads SDKs detected — auto-clean applied separately")

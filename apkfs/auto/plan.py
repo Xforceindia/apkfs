@@ -154,7 +154,7 @@ def build_plan(
         flags["Remove_SS"] = True
         flags["Remove_USB"] = True
         p.strategies.insert(0, "BOOM super mode (LP-style modified APK pack)")
-        p.strategies.append("Support pack: LVL / signature / installer")
+        p.strategies.append("Support pack: LVL / signature / Play Store installer source")
         p.strategies.append("Client unlock heuristics (isPremium / BillingClient / LVL)")
         p.reasons.append("boom: SSL + clean ads + LVL/signature support + client unlock heuristics")
         p.warnings.append("BOOM unlock is CLIENT-SIDE only — online IAP / Play Integrity still server-enforced")
@@ -162,8 +162,12 @@ def build_plan(
         p.confidence = min(p.confidence, 0.55)
     else:
         if flags.get("Support_Pack"):
-            p.strategies.append("Support pack: LVL / signature / installer (re-sign friendly)")
+            p.strategies.append("Support pack: LVL / signature / Play Store installer source (re-sign friendly)")
             p.reasons.append("LuckPatcher-like modified-APK support so re-signed apps keep running")
+            if getattr(det, "has_installer_check", False):
+                p.strategies.append("AUTO: spoof install source as Play Store (getInstaller + InstallSourceInfo)")
+                p.reasons.append("app checks installer/Play Store source — client-side spoof enabled")
+                p.warnings.append("Installer spoof is client-side only; adb install -i com.android.vending is stronger on-device")
         if flags.get("Support_Unlock"):
             p.strategies.append("Client unlock heuristics (isPremium / BillingClient state)")
             p.warnings.append("Unlock heuristics fail on server-validated purchases")

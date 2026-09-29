@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/MADE%20IN-INDIA-SCRIPT?colorA=%23ff8100&colorB=%23017e40&colorC=%23ff0000&style=for-the-badge" alt="Made in INDIA"/>
   <img src="https://img.shields.io/badge/NO%20ROOT-TERMUX-0B1F3A?style=for-the-badge&logo=android&logoColor=white" alt="No Root"/>
-  <img src="https://img.shields.io/badge/v1.3.1-Professor%20X%20(FS)-7C3AED?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/v1.4.0-Professor%20X%20(FS)-7C3AED?style=for-the-badge" alt="Version"/>
   <img src="https://img.shields.io/badge/ORG-Xforceindia-111111?style=for-the-badge&logo=github" alt="Xforceindia"/>
 </p>
 
@@ -377,10 +377,38 @@ apkfs -V
 | ads / trackers | **AUTO REMOVE** (AdMob, AppLovin, Unity Ads, …) |
 | USB / screenshot | soften `FLAG_SECURE` / USB-debug checks |
 | billing / LVL | Support_Pack (re-sign friendly) |
+| Play Store installer / sideload gates | **AUTO spoof** as `com.android.vending` (API 30 InstallSourceInfo too) |
 
 **Never silent-default:** purchase / paid unlock → only `-P` / `--unlock` / `--boom`.
 
 ---
+
+
+---
+
+## Play Store install-source / "Get from Play Store"
+-----
+
+Many apps block sideload with:
+
+- `PackageManager.getInstallerPackageName()` (old)
+- `getInstallSourceInfo().getInstallingPackageName()` (Android 11+)
+- helpers like `isInstalledFromPlayStore()` / `verifyInstallerId()`
+
+**apkfs auto (`-i`) spoofs these client-side** to `com.android.vending` via Support pack + core Smali pack.
+
+```bash
+apkfs -i app.apk
+# installer / Play Store source checks softened automatically
+```
+
+| Works well | Limits |
+|------------|--------|
+| In-app "install from Play Store" / sideload dialogs | **Play Integrity / server license** still server-side |
+| `getInstallerPackageName` / `InstallSourceInfo` reads | Obfuscated custom native checks may miss |
+| Named helpers `isFromPlayStore` / `isSideloaded` | Stronger on-device: `adb install -i com.android.vending app.apk` |
+
+> Lab / authorized testing only. Does not replace real Play distribution.
 
 ## Reports
 
@@ -405,7 +433,7 @@ Tools cache:
 
 ```text
 ══════════════════════════════════════════════════════════════
-  apkfs  v1.3.1  ·  Professor X (FS)
+  apkfs  v1.4.0  ·  Professor X (FS)
   Fully Automatic APK Lab Suite
 ══════════════════════════════════════════════════════════════
 

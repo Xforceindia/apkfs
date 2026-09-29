@@ -81,7 +81,13 @@ def Smali_Patch(decompile_dir, smali_folders, isAPKEditor, CA_Cert, isID, isPair
         (
             r'(invoke-virtual \{[^\}]*\}, Landroid/content/pm/PackageManager;->getInstallerPackageName\(Ljava/lang/String;\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)',
             r'\1const-string \2, "com.android.vending"',
-            "Fixed Installer"
+            "Fixed Installer (getInstallerPackageName → Play Store)"
+        ),
+        # Android 11+ InstallSourceInfo field reads
+        (
+            r'(invoke-virtual \{[^\}]*\}, Landroid/content/pm/InstallSourceInfo;->(?:getInstallingPackageName|getInitiatingPackageName|getOriginatingPackageName)\(\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)',
+            r'\1const-string \2, "com.android.vending"',
+            "Fixed Installer (InstallSourceInfo → Play Store)"
         ),
 
         # ---------------- SSL BYPASS ( MITM ) ----------------

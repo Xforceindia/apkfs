@@ -26,6 +26,7 @@ class Detection:
     has_trackers: bool = False
     has_billing: bool = False
     has_lvl: bool = False
+    has_installer_check: bool = False
     ad_sdks: list[str] = field(default_factory=list)
     native_libs: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
@@ -48,6 +49,8 @@ class Detection:
             flags.append("billing")
         if self.has_lvl:
             flags.append("lvl")
+        if self.has_installer_check:
+            flags.append("play-installer")
         if self.has_trackers:
             flags.append("trackers")
         if self.has_arm64:
@@ -162,6 +165,14 @@ def detect(path: Path) -> Detection:
         d.notes.append("play-billing markers")
     if d.has_lvl:
         d.notes.append("LVL/licensing markers")
+
+    d.has_installer_check = any(x in joined for x in (
+        "getinstallerpackagename", "getinstallsourceinfo", "installsourceinfo",
+        "getinstallingpackagename", "com/android/vending", "isinstalledfromplaystore",
+        "isfromplaystore", "verifyinstaller", "installsource",
+    ))
+    if d.has_installer_check:
+        d.notes.append("Play Store installer/source checks")
 
 
 
