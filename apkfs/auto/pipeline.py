@@ -49,6 +49,8 @@ def run_auto(
     det = detect(apk)
     for line in det.summary_lines():
         print(f"    {line}")
+    for n in getattr(det, "notes", []) or []:
+        print(f"    note: {n}")
 
     # 2) Plan
     print("\n  ▶ stage : AUTO-PLAN")
@@ -89,6 +91,9 @@ def run_auto(
             "okhttp": det.has_okhttp,
             "unity": det.has_unity,
             "arm64": det.has_arm64,
+            "ads": getattr(det, "has_ads", False),
+            "ad_sdks": getattr(det, "ad_sdks", []),
+            "trackers": getattr(det, "has_trackers", False),
         },
         "plan": {
             "strategies": plan.strategies,

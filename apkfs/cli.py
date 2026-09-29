@@ -48,7 +48,8 @@ examples (Termux / phone, no root):
     p.add_argument("--experimental", action="store_true", help="Allow experimental strategies")
     p.add_argument("-a", "--apkeditor", action="store_true", help="Prefer APKEditor decompiler")
     p.add_argument("-u", "--unsigned", action="store_true", help="Keep unsigned / CRC path")
-    p.add_argument("--no-ads", action="store_true", help="Do not auto-apply ads patches")
+    p.add_argument("--no-ads", action="store_true", help="Keep ads (default: AUTO REMOVE ads/trackers while patching)")
+    p.add_argument("--clean", action="store_true", default=False, help=argparse.SUPPRESS)  # reserved; clean is default
     p.add_argument("--no-usb-ss", action="store_true", help="Skip USB/screenshot lab patches")
     p.add_argument("--report-dir", type=str, help="Where to write plan/report JSON")
     p.add_argument("-v", "--verbose", action="store_true", help="Verbose engine argv / logs")

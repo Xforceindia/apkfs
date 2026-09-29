@@ -84,7 +84,12 @@ What auto does:
 | `--corex` + arm64 split | experimental PairIP CoreX |
 | `-c certs` | embed your proxy CAs |
 
-Also auto (lab friction): screenshot `FLAG_SECURE`, USB-debug detection, ads call-sites (disable with `--no-ads` / `--no-usb-ss`).
+Also auto while patching:
+
+- **ads / trackers AUTO REMOVE** (AdMob, AppLovin, Unity Ads, … + manifest clean)
+- screenshot `FLAG_SECURE`, USB-debug detection soften
+- disable with `--no-ads` / `--no-usb-ss` if you want to keep them
+
 
 **Never auto:** purchase / paid unlock heuristics (policy).
 

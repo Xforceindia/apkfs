@@ -13,6 +13,7 @@ from apkfs.engine.Patch.CERT_NSC import Write_NSC
 from apkfs.engine.Patch.Smali_Patch import Smali_Patch
 from apkfs.engine.Patch.TG_Patch import TG_Smali_Patch
 from apkfs.engine.Patch.Ads_Patch import Ads_Smali_Patch
+from apkfs.engine.Patch.Clean_Pack import Clean_Manifest_Ads
 from apkfs.engine.Patch.Pine_Hook import Pine_Hook_Patch
 from apkfs.engine.Patch.Spoof_Patch import Patch_Random_Info
 from apkfs.engine.Patch.Flutter_SSL_Patch import Patch_Flutter_SSL
@@ -175,37 +176,21 @@ def apkfs_main():
 
     smali_folders = Find_Smali_Folders(decompile_dir, isAPKEditor, args.Pine_Hook)
 
-    # ---------------- Pine Hook ----------------
+    # ---------------- Pine Hook (optional exclusive path) ----------------
     if args.Pine_Hook:
         Pine_Hook_Patch(decompile_dir, isAPKEditor, args.Load_Modules, smali_folders)
-    else:
-        # ---------------- AES Logs Inject ----------------
-        if args.AES_Logs or args.Algorithm:
-            Copy_AES_Smali(decompile_dir, smali_folders, manifest_path, args.AES_S, args.Algorithm, isAPKEditor)
-
-            Permission_Manifest(decompile_dir, manifest_path, isAPKEditor)
-
-        # ---------------- Remove Ads ----------------
-        if args.Remove_Ads:
-            Ads_Smali_Patch(smali_folders)
-
-        # ---------------- Fake / Spoof Device Info ----------------
-        if args.Random_Info:
-            Patch_Random_Info(smali_folders, args.Android_ID)
-
-        # ---------------- TG Patch ----------------
-        if args.TG_Patch:
-            TG_Smali_Patch(decompile_dir, smali_folders, isAPKEditor)
-
-
-    # ---------------- Other Patch ----------------
-    if args.AES_Logs or args.Algorithm or args.Remove_Ads or args.Random_Info or args.Pine_Hook or args.TG_Patch:
         Fix_Manifest(manifest_path, args.Spoof_PKG, args.Pine_Hook, Package_Name)
     else:
+        # -------- CORE lab patches ALWAYS (SSL / VPN / Flutter / PairIP / NSC) --------
+        # (apkfs fix: older logic skipped core when -rmads was on)
+
+        if args.AES_Logs or args.Algorithm:
+            Copy_AES_Smali(decompile_dir, smali_folders, manifest_path, args.AES_S, args.Algorithm, isAPKEditor)
+            Permission_Manifest(decompile_dir, manifest_path, isAPKEditor)
+
         if isFlutter and isFlutter_lib:
             Patch_Flutter_SSL(decompile_dir, isAPKEditor)
 
-        # ---------------- Smali Patching / Hook CoreX ----------------
         if isCoreX and isPairip and isPairip_lib and Check_CoreX(decompile_dir, isAPKEditor):
             M.shutil.rmtree(decompile_dir)
             exit(1)
@@ -215,11 +200,21 @@ def apkfs_main():
         if isCoreX and isPairip and isPairip_lib:
             Hook_Core(args.input, decompile_dir, isAPKEditor, Package_Name)
 
-        # ---------------- Patch Manifest & Write Network Config ----------------
+        # -------- CLEAN / REMOVE (auto with patch) --------
+        if args.Remove_Ads:
+            print(f"\n{C.X}{C.C} Auto clean: ads / trackers / update prompts…")
+            Ads_Smali_Patch(smali_folders)
+            Clean_Manifest_Ads(manifest_path)
+
+        if args.Random_Info:
+            Patch_Random_Info(smali_folders, args.Android_ID)
+
+        if args.TG_Patch:
+            TG_Smali_Patch(decompile_dir, smali_folders, isAPKEditor)
+
+        # -------- Manifest + Network Security (always for lab MITM) --------
         Fix_Manifest(manifest_path, args.Spoof_PKG, args.Pine_Hook, Package_Name)
-
         Patch_Manifest(decompile_dir, manifest_path)
-
         Write_NSC(decompile_dir, isAPKEditor, args.CA_Certificate)
 
     # ---------------- Recompile APK ----------------

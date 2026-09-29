@@ -22,6 +22,9 @@ class Detection:
     has_okhttp: bool = False
     has_firebase: bool = False
     has_unity: bool = False
+    has_ads: bool = False
+    has_trackers: bool = False
+    ad_sdks: list[str] = field(default_factory=list)
     native_libs: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
@@ -37,6 +40,10 @@ class Detection:
             flags.append("okhttp")
         if self.has_unity:
             flags.append("unity")
+        if self.has_ads:
+            flags.append("ads")
+        if self.has_trackers:
+            flags.append("trackers")
         if self.has_arm64:
             flags.append("arm64")
         return [
@@ -89,8 +96,54 @@ def detect(path: Path) -> Detection:
         if low.endswith("libflutter.so"):
             d.has_flutter = True
 
+
     d.abis = sorted(abis)
     d.has_arm64 = any("arm64" in a for a in d.abis)
+
+    # --- ads / trackers from zip paths ---
+    joined = "\n".join(n.lower().replace("\\", "/") for n in names)
+    found_ads = []
+    for sdk, keys in {
+        "admob": ("admob", "gms/ads/", "/ads/ad"),
+        "applovin": ("applovin",),
+        "unityads": ("unityads", "unity3d/ads"),
+        "ironsource": ("ironsource", "supersonic"),
+        "vungle": ("vungle",),
+        "facebook_ads": ("facebook/ads", "audience_network"),
+        "appodeal": ("appodeal",),
+        "chartboost": ("chartboost",),
+        "inmobi": ("inmobi",),
+        "mintegral": ("mintegral", "mbridge"),
+        "pangle": ("pangle", "openadsdk"),
+        "startapp": ("startapp",),
+        "mopub": ("mopub",),
+        "fyber": ("fyber",),
+        "tapjoy": ("tapjoy",),
+        "smaato": ("smaato",),
+    }.items():
+        if any(k in joined for k in keys):
+            found_ads.append(sdk)
+    d.ad_sdks = found_ads
+    d.has_ads = bool(found_ads) or ("ca-app-pub-" in joined) or ("/ads/" in joined and "admob" in joined)
+
+    found_tr = []
+    for name, keys in {
+        "appsflyer": ("appsflyer",),
+        "adjust": ("com/adjust", "/adjust/"),
+        "firebase_analytics": ("firebase/analytics",),
+        "crashlytics": ("crashlytics",),
+        "flurry": ("flurry",),
+        "onesignal": ("onesignal",),
+        "mixpanel": ("mixpanel",),
+    }.items():
+        if any(k in joined for k in keys):
+            found_tr.append(name)
+    d.has_trackers = bool(found_tr)
+    if found_tr:
+        d.notes.append("trackers: " + ", ".join(found_tr))
+    if found_ads:
+        d.notes.append("ad-sdks: " + ", ".join(found_ads))
+
 
     # Optional aapt2 package name (fast)
     aapt = _which("aapt2") or _which("aapt")

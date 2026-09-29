@@ -95,7 +95,15 @@ def build_plan(
         p.reasons.append("common lab friction removers")
 
     if enable_ads:
-        p.strategies.append("ads call-site soften (best-effort)")
+        if getattr(det, "has_ads", False) or getattr(det, "ad_sdks", None):
+            sdks = ", ".join(getattr(det, "ad_sdks", [])[:8]) or "generic"
+            p.strategies.append(f"AUTO REMOVE ads/trackers ({sdks})")
+            p.reasons.append("ads/trackers detected — strip load/show/init call-sites + ad unit ids")
+        else:
+            p.strategies.append("AUTO REMOVE ads/trackers (best-effort, always-on clean)")
+            p.reasons.append("clean pack: neutralize known ad SDK + force-update prompts")
+        if getattr(det, "has_trackers", False):
+            p.warnings.append("analytics/trackers softened best-effort — not a full privacy suite")
 
     # Flutter auto
     if det.has_flutter:
