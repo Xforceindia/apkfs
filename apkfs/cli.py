@@ -46,6 +46,12 @@ examples (Termux / phone, no root):
     p.add_argument("--dry-run", action="store_true", help="Detect + plan only, write report")
     p.add_argument("--corex", action="store_true", help="Experimental PairIP CoreX (arm64/split)")
     p.add_argument("--experimental", action="store_true", help="Allow experimental strategies")
+    p.add_argument("--boom", action="store_true",
+                   help="SUPER mode: SSL+ads clean+LVL/signature support+client unlock (LP-style modified APK)")
+    p.add_argument("--unlock", action="store_true",
+                   help="Enable client unlock heuristics (isPremium/Billing) without full --boom")
+    p.add_argument("--no-support", action="store_true",
+                   help="Skip LVL/signature support pack")
     p.add_argument("-a", "--apkeditor", action="store_true", help="Prefer APKEditor decompiler")
     p.add_argument("-u", "--unsigned", action="store_true", help="Keep unsigned / CRC path")
     p.add_argument("--no-ads", action="store_true", help="Keep ads (default: AUTO REMOVE ads/trackers while patching)")
@@ -136,6 +142,9 @@ def main(argv: list[str] | None = None) -> int:
             no_ads=bool(args.no_ads),
             no_usb_ss=bool(args.no_usb_ss),
             experimental=bool(args.experimental),
+            boom=bool(getattr(args, "boom", False)),
+            unlock=bool(getattr(args, "unlock", False)),
+            no_support=bool(getattr(args, "no_support", False)),
             report_dir=Path(args.report_dir) if args.report_dir else None,
             verbose=bool(args.verbose),
         )

@@ -24,6 +24,8 @@ class Detection:
     has_unity: bool = False
     has_ads: bool = False
     has_trackers: bool = False
+    has_billing: bool = False
+    has_lvl: bool = False
     ad_sdks: list[str] = field(default_factory=list)
     native_libs: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
@@ -42,6 +44,10 @@ class Detection:
             flags.append("unity")
         if self.has_ads:
             flags.append("ads")
+        if self.has_billing:
+            flags.append("billing")
+        if self.has_lvl:
+            flags.append("lvl")
         if self.has_trackers:
             flags.append("trackers")
         if self.has_arm64:
@@ -143,6 +149,20 @@ def detect(path: Path) -> Detection:
         d.notes.append("trackers: " + ", ".join(found_tr))
     if found_ads:
         d.notes.append("ad-sdks: " + ", ".join(found_ads))
+
+    d.has_billing = any(x in joined for x in (
+        "billingclient", "billing/client", "inappbilling", "aidl/billing",
+        "com/android/vending/billing", "purchase.purchase",
+    ))
+    d.has_lvl = any(x in joined for x in (
+        "vending/licensing", "licensechecker", "licensevalidator",
+        "com/google/android/vending/licensing",
+    ))
+    if d.has_billing:
+        d.notes.append("play-billing markers")
+    if d.has_lvl:
+        d.notes.append("LVL/licensing markers")
+
 
 
     # Optional aapt2 package name (fast)

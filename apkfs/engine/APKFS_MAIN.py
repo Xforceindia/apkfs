@@ -14,6 +14,7 @@ from apkfs.engine.Patch.Smali_Patch import Smali_Patch
 from apkfs.engine.Patch.TG_Patch import TG_Smali_Patch
 from apkfs.engine.Patch.Ads_Patch import Ads_Smali_Patch
 from apkfs.engine.Patch.Clean_Pack import Clean_Manifest_Ads
+from apkfs.engine.Patch.Support_Pack import Support_Smali_Pack
 from apkfs.engine.Patch.Pine_Hook import Pine_Hook_Patch
 from apkfs.engine.Patch.Spoof_Patch import Patch_Random_Info
 from apkfs.engine.Patch.Flutter_SSL_Patch import Patch_Flutter_SSL
@@ -205,6 +206,14 @@ def apkfs_main():
             print(f"\n{C.X}{C.C} Auto clean: ads / trackers / update prompts…")
             Ads_Smali_Patch(smali_folders)
             Clean_Manifest_Ads(manifest_path)
+
+        # LuckPatcher-inspired support pack (LVL / signature / optional unlock)
+        if getattr(args, 'Support_Pack', False) or args.Purchase:
+            print(f"\n{C.X}{C.C} Support pack: LVL / signature / client gates…")
+            Support_Smali_Pack(
+                smali_folders,
+                unlock=bool(args.Purchase or getattr(args, 'Support_Unlock', False)),
+            )
 
         if args.Random_Info:
             Patch_Random_Info(smali_folders, args.Android_ID)

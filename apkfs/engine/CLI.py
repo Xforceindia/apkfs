@@ -326,6 +326,19 @@ def parse_arguments():
     )
 
 
+    parser.add_argument(
+        '--Support_Pack',
+        dest='Support_Pack',
+        action='store_true',
+        help=M.argparse.SUPPRESS
+    )
+    parser.add_argument(
+        '--Support_Unlock',
+        dest='Support_Unlock',
+        action='store_true',
+        help=M.argparse.SUPPRESS
+    )
+
     Ext = ('.apk', '.apks', '.apkm', '.xapk')
 
     fixed = []; start = None; Valid_Ext = False

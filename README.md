@@ -60,6 +60,24 @@ pip install -U git+https://github.com/xforcemob-commits/apkfs.git
 
 ## Usage
 
+### BOOM super mode (LuckPatcher-style modified APK)
+
+One click pack inspired by LP *create modified APK* (no root):
+
+```bash
+apkfs -i /sdcard/Download/app.apk --boom
+```
+
+Includes: SSL/VPN/NSC · auto ads clean · LVL/signature support · client unlock heuristics · auto backup of original · working-score in report.
+
+```bash
+apkfs -i app.apk                 # safe lab default (no unlock)
+apkfs -i app.apk --unlock        # client unlock only
+apkfs -i app.apk --boom          # full super pack
+```
+
+> Client-side only. Online IAP / Play Integrity are server-checked and will not magically pass.
+
 ### Full auto (recommended)
 
 ```bash

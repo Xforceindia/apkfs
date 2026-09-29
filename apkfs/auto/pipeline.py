@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import shutil
 import sys
@@ -25,6 +26,9 @@ def run_auto(
     keep_unsigned: bool = False,
     no_ads: bool = False,
     no_usb_ss: bool = False,
+    boom: bool = False,
+    unlock: bool = False,
+    no_support: bool = False,
     experimental: bool = False,
     report_dir: Path | None = None,
     verbose: bool = False,
@@ -61,6 +65,9 @@ def run_auto(
         force_corex=force_corex,
         enable_ads=not no_ads,
         enable_usb_ss=not no_usb_ss,
+        enable_support=not no_support,
+        enable_unlock=unlock or boom,
+        boom=boom,
         experimental=experimental,
     )
     if use_apkeditor:
@@ -94,6 +101,8 @@ def run_auto(
             "ads": getattr(det, "has_ads", False),
             "ad_sdks": getattr(det, "ad_sdks", []),
             "trackers": getattr(det, "has_trackers", False),
+            "billing": getattr(det, "has_billing", False),
+            "lvl": getattr(det, "has_lvl", False),
         },
         "plan": {
             "strategies": plan.strategies,
@@ -110,6 +119,18 @@ def run_auto(
         wake_lock(False)
         footer(time.time() - t0)
         return 0
+
+    # LuckPatcher-style safety: always backup original next to report
+    try:
+        bak = report_dir / f"{apk.stem}.original{apk.suffix}"
+        if not bak.exists():
+            shutil.copy2(apk, bak)
+            h = hashlib.sha256(apk.read_bytes()).hexdigest()[:16]
+            print(f"\n  ✔ backup  : {bak.name}  sha256={h}…")
+            report["backup"] = str(bak)
+            report["input_sha256_16"] = h
+    except Exception as e:
+        print(f"  ! backup failed: {e}")
 
     if merge_only:
         return _run_merge_only(apk, report_dir, t0)
@@ -130,6 +151,25 @@ def run_auto(
 
     report["exit_code"] = code
     report["seconds"] = round(time.time() - t0, 2)
+    try:
+        from apkfs.engine.Patch.Support_Pack import support_score
+        report["working_score"] = support_score(
+            {
+                "pairip": det.has_pairip,
+                "flutter": det.has_flutter,
+                "has_ads": getattr(det, "has_ads", False),
+                "billing": getattr(det, "has_billing", False),
+                "lvl": getattr(det, "has_lvl", False),
+            },
+            report.get("support_stats"),
+        )
+        ws = report["working_score"]
+        print(f"\n  ▶ working score : {ws['score'].upper()}  ({ws['hits']} support hits)")
+        for rsn in ws.get("reasons", []):
+            print(f"      · {rsn}")
+        print(f"      · {ws.get('note')}")
+    except Exception as e:
+        report["working_score_error"] = str(e)
     (report_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     if code == 0:
@@ -199,6 +239,8 @@ def _execute_engine(apk: Path, plan: Plan, verbose: bool = False) -> int:
     add("-r", bool(flags.get("Random_Info")))
     add("-pkg", bool(flags.get("Spoof_PKG")))
     add("-P", bool(flags.get("Purchase")))
+    add("--Support_Pack", bool(flags.get("Support_Pack")))
+    add("--Support_Unlock", bool(flags.get("Support_Unlock")))
     add("-A", bool(flags.get("AES_Logs")))
     add("-A2", bool(flags.get("Algorithm")))
     add("-t", bool(flags.get("TG_Patch")))

@@ -37,6 +37,9 @@ def build_plan(
     force_corex: bool = False,
     enable_ads: bool = True,
     enable_usb_ss: bool = True,
+    enable_support: bool = True,
+    enable_unlock: bool = False,
+    boom: bool = False,
     experimental: bool = False,
 ) -> Plan:
     """
@@ -55,11 +58,14 @@ def build_plan(
         "Remove_SS": enable_usb_ss,
         "Remove_USB": enable_usb_ss,
         "Remove_Ads": enable_ads,
+        # LuckPatcher-like support (re-sign friendly). Unlock only via --boom/--unlock
+        "Support_Pack": bool(enable_support or boom),
+        "Support_Unlock": bool(enable_unlock or boom),
+        "Purchase": bool(enable_unlock or boom),
         "AES_Logs": False,
         "Algorithm": False,
         "Random_Info": False,
         "Spoof_PKG": False,
-        "Purchase": False,  # never auto
         "TG_Patch": False,
         "Pine_Hook": False,
         "APKEditor": False,
@@ -69,7 +75,6 @@ def build_plan(
         "Skip_Patch": [],
         "AES_S": False,
         "Load_Modules": None,
-        "Spoof_PKG": False,
     }
 
     if merge_only:
@@ -139,8 +144,34 @@ def build_plan(
     if det.has_okhttp:
         p.reasons.append("okhttp markers present — certificate pinner patterns prioritized")
 
-    # Never auto-enable purchase / piracy heuristics
-    flags["Purchase"] = False
+
+    if boom:
+        flags["Support_Pack"] = True
+        flags["Support_Unlock"] = True
+        flags["Purchase"] = True
+        if enable_ads:
+            flags["Remove_Ads"] = True
+        flags["Remove_SS"] = True
+        flags["Remove_USB"] = True
+        p.strategies.insert(0, "BOOM super mode (LP-style modified APK pack)")
+        p.strategies.append("Support pack: LVL / signature / installer")
+        p.strategies.append("Client unlock heuristics (isPremium / BillingClient / LVL)")
+        p.reasons.append("boom: SSL + clean ads + LVL/signature support + client unlock heuristics")
+        p.warnings.append("BOOM unlock is CLIENT-SIDE only — online IAP / Play Integrity still server-enforced")
+        p.warnings.append("Always keep original APK backup; test patched build before uninstalling original")
+        p.confidence = min(p.confidence, 0.55)
+    else:
+        if flags.get("Support_Pack"):
+            p.strategies.append("Support pack: LVL / signature / installer (re-sign friendly)")
+            p.reasons.append("LuckPatcher-like modified-APK support so re-signed apps keep running")
+        if flags.get("Support_Unlock"):
+            p.strategies.append("Client unlock heuristics (isPremium / BillingClient state)")
+            p.warnings.append("Unlock heuristics fail on server-validated purchases")
+
+    # Safety: never unlock unless boom/--unlock explicitly requested
+    if not (boom or enable_unlock):
+        flags["Purchase"] = False
+        flags["Support_Unlock"] = False
 
     p.engine_flags = flags
     return p
