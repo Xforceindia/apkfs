@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apkfs"
+version = "1.0.0"
+description = "apkfs — Professor X (FS) fully automatic APK lab suite (SSL/VPN/Flutter/PairIP auto)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Professor X (FS)" }]
+keywords = ["apkfs", "apk", "android", "smali", "ssl", "mitm", "pairip", "flutter"]
+dependencies = [
+  "requests>=2.28",
+  "r2pipe>=1.8",
+  "asn1crypto>=1.5",
+  "multiprocess>=0.70",
+]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Topic :: Security",
+]
+
+[project.scripts]
+apkfs = "apkfs.cli:main"
+ApkFS = "apkfs.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/xforcemob-commits/apkfs"
+Repository = "https://github.com/xforcemob-commits/apkfs.git"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["apkfs*"]
+
+[tool.setuptools.package-data]
+apkfs = [
+  "engine/Utils/Files/*",
+  "engine/Utils/Pine/*",
+  "assets/*",
+]
