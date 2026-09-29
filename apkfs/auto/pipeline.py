@@ -79,7 +79,7 @@ def run_auto(
             plan.strategies.append("Flutter SSL (forced -f)")
     if force_flags.get("pairip"):
         plan.engine_flags["Pairip"] = True
-        plan.engine_flags["unsigned_apk"] = plan.engine_flags.get("unsigned_apk", True)
+        plan.engine_flags["unsigned_apk"] = plan.engine_flags.get("unsigned_apk", False)  # no-root default signed
         plan.strategies.append("PairIP pack (forced -p)")
     if force_flags.get("purchase"):
         plan.engine_flags["Purchase"] = True

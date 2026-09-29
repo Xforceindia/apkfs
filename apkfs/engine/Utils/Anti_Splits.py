@@ -14,8 +14,9 @@ Merge_Ext = ['.apks', '.apkm', '.xapk']
 def Anti_Split(apk_path, isMerge, isCoreX):
 
     base_name, Ext = M.os.path.splitext(apk_path)
+    Ext = Ext.lower()
 
-    if apk_path and isCoreX and M.os.path.splitext(apk_path)[-1].lower() not in Merge_Ext:
+    if apk_path and isCoreX and Ext not in Merge_Ext:
         exit(f"\n{C.X}{C.C} Only Supported Extensions {C.G}{Merge_Ext} with {C.OG}CoreX\n")
 
     if Ext in Merge_Ext:

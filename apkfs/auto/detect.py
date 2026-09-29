@@ -169,10 +169,11 @@ def detect(path: Path) -> Detection:
     if d.has_lvl:
         d.notes.append("LVL/licensing markers")
 
+    # Prefer specific API names — bare "com/android/vending" false-positives on any Play library
     d.has_installer_check = any(x in joined for x in (
         "getinstallerpackagename", "getinstallsourceinfo", "installsourceinfo",
-        "getinstallingpackagename", "com/android/vending", "isinstalledfromplaystore",
-        "isfromplaystore", "verifyinstaller", "installsource",
+        "getinstallingpackagename", "isinstalledfromplaystore",
+        "isfromplaystore", "verifyinstaller", "getinstallsource",
     ))
     if d.has_installer_check:
         d.notes.append("Play Store installer/source checks")

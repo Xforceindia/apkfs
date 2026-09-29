@@ -33,23 +33,34 @@ def _scan(path, regs, count, lock):
         text = open(path, "r", encoding="utf-8", errors="ignore").read()
     except OSError:
         return None
+    hit = False
     for r in regs:
         if r.search(text):
-            if lock:
-                try:
-                    with lock:
-                        count.value += 1
-                        print(
-                            f"\r{C.S} Support targets {C.E} {C.OG}➸❥ {C.PN}{count.value}",
-                            end="",
-                            flush=True,
-                        )
-                except Exception:
-                    return None
+            hit = True
+            break
+    if not hit:
+        return None
+    def _bump():
+        try:
+            if hasattr(count, "value"):
+                count.value += 1
+                n = count.value
             else:
                 count[0] += 1
-            return path
-    return None
+                n = count[0]
+        except Exception:
+            n = 0
+        print(f"\r{C.S} Support targets {C.E} {C.OG}➸❥ {C.PN}{n}", end="", flush=True)
+    if lock:
+        try:
+            with lock:
+                _bump()
+        except Exception:
+            _bump()
+    else:
+        _bump()
+    return path
+
 
 
 def Support_Smali_Pack(smali_folders, *, unlock: bool = True) -> dict:
@@ -351,7 +362,7 @@ def support_score(det_flags: dict, stats: dict | None) -> dict:
 
     if det_flags.get("pairip"):
         reasons.append("PairIP present — support patches may be incomplete")
-        score = "yellow"
+        # do not force yellow below; hits below can still promote to green
     if det_flags.get("flutter") and not det_flags.get("ssl_ok", True):
         reasons.append("Flutter SSL depends on engine patterns")
 

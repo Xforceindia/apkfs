@@ -32,22 +32,23 @@ if not M.os.environ.get("APKFS_QUIET"):
     Clear()
 
 
-# ---------------- Install Require Module ---------------
-required_modules = ['requests', 'r2pipe', 'asn1crypto', 'multiprocess']
-for module in required_modules:
-    try:
-        __import__(module)
-    except ImportError:
-        if not M.os.environ.get("APKFS_QUIET"):
-            print(f"{C.S} Installing {C.E} {C.OG}➸❥ {C.G}{module}...\n")
+# ---------------- Install Require Module (lazy) ---------------
+def _ensure_modules():
+    required_modules = ['requests', 'r2pipe', 'asn1crypto', 'multiprocess']
+    for module in required_modules:
         try:
-            M.subprocess.check_call(
-                [M.sys.executable, "-m", "pip", "install", module],
-                stdout=M.subprocess.DEVNULL if M.os.environ.get("APKFS_QUIET") else None,
-            )
-            Clear()
-        except (M.subprocess.CalledProcessError, Exception):
-            raise SystemExit(1)
+            __import__(module)
+        except ImportError:
+            if not M.os.environ.get("APKFS_QUIET"):
+                print(f"{C.S} Installing {C.E} {C.OG}➸❥ {C.G}{module}...\n")
+            try:
+                M.subprocess.check_call(
+                    [M.sys.executable, "-m", "pip", "install", module],
+                    stdout=M.subprocess.DEVNULL if M.os.environ.get("APKFS_QUIET") else None,
+                )
+                Clear()
+            except (M.subprocess.CalledProcessError, Exception):
+                print(f"{C.WARN} optional module {module} not installed — some features may skip\n")
 
 
 # ---------------- Check Dependencies ---------------
@@ -91,6 +92,7 @@ F = None  # initialized in _bootstrap()
 def _bootstrap():
     """Lazy init jars/deps once per process (import-safe)."""
     global F
+    _ensure_modules()
     check_dependencies()
     F = FileCheck(); F.Set_Path(); F.F_D()
     if M.os.environ.get("APKFS_QUIET"):
@@ -107,21 +109,53 @@ def Find_Smali_Folders(decompile_dir, isAPKEditor, isPine_Hook):
 
     dex_path = M.os.path.join(decompile_dir, "dex") if isAPKEditor else decompile_dir
 
-    smali_path = M.os.path.join(decompile_dir, "smali") if isAPKEditor else decompile_dir
-
     if isPine_Hook:
-
-        classes_files = [file for file in M.os.listdir(dex_path) if file.startswith("classes") and file.endswith(".dex")]
-
+        if not M.os.path.isdir(dex_path):
+            dex_path = decompile_dir
+        classes_files = [file for file in M.os.listdir(dex_path) if file.startswith("classes") and file.endswith(".dex")] if M.os.path.isdir(dex_path) else []
         return f"classes{len(classes_files) + 1}.dex"
 
-    else:
-
-        prefix = "classes" if isAPKEditor else "smali_classes"
-
-        folders = sorted([folder for folder in M.os.listdir(smali_path) if folder == "smali" or folder.startswith(prefix)], key=lambda x: int(x.split(prefix)[-1]) if x.split(prefix)[-1].isdigit() else 0)
-
-        return [M.os.path.join(smali_path, folder) for folder in folders]
+    # APKEditor layouts vary:
+    #   smali/classes, smali/classes2  OR  root smali + smali_classes2 (apktool-like)
+    candidates = []
+    smali_root = M.os.path.join(decompile_dir, "smali")
+    if isAPKEditor and M.os.path.isdir(smali_root):
+        sub = sorted(
+            [f for f in M.os.listdir(smali_root) if f == "classes" or f.startswith("classes")],
+            key=lambda x: int(x.replace("classes", "") or "0") if x.replace("classes", "").isdigit() or x == "classes" else 0,
+        )
+        candidates = [M.os.path.join(smali_root, f) for f in sub]
+        # also plain files under smali/ (some builds)
+        if not candidates:
+            candidates = [smali_root]
+    if not candidates:
+        # apktool: decompile_dir/smali, smali_classes2, ...
+        prefix = "smali_classes"
+        if M.os.path.isdir(decompile_dir):
+            folders = [
+                folder for folder in M.os.listdir(decompile_dir)
+                if folder == "smali" or folder.startswith(prefix)
+            ]
+            def _key(x):
+                if x == "smali":
+                    return 0
+                tail = x.split(prefix)[-1]
+                return int(tail) if tail.isdigit() else 0
+            folders = sorted(folders, key=_key)
+            candidates = [M.os.path.join(decompile_dir, folder) for folder in folders]
+    # last resort: walk for any *.smali parent roots
+    if not candidates and M.os.path.isdir(decompile_dir):
+        found = set()
+        for root, _, files in M.os.walk(decompile_dir):
+            if any(f.endswith(".smali") for f in files):
+                # use immediate tree root under decompile
+                found.add(root)
+                if len(found) > 20:
+                    break
+        candidates = sorted(found)
+    if not candidates:
+        print(f"\n{C.WARN} No smali folders found under {decompile_dir}\n")
+    return candidates
 
 
 # ---------------- Execute Main Function ---------------
@@ -141,6 +175,9 @@ def apkfs_main():
         Credits()
 
     apk_path = args.input or args.Merge
+
+    if not apk_path:
+        exit(f"\n{C.ERROR} No input APK. Use: apkfs -i app.apk\n")
 
     if not M.os.path.isfile(apk_path):
         exit(
@@ -200,7 +237,7 @@ def apkfs_main():
         Smali_Patch(decompile_dir, smali_folders, isAPKEditor, args.CA_Certificate, args.Android_ID, isPairip, isPairip_lib, args.Spoof_PKG, args.Purchase, args.Remove_SS, Skip_Patch, args.Remove_USB, isCoreX)
 
         if isCoreX and isPairip and isPairip_lib:
-            Hook_Core(args.input, decompile_dir, isAPKEditor, Package_Name)
+            Hook_Core(apk_path, decompile_dir, isAPKEditor, Package_Name)  # merged path if split
 
         # -------- CLEAN / REMOVE (auto with patch) --------
         if args.Remove_Ads:
@@ -240,7 +277,7 @@ def apkfs_main():
     # `or unsigned` binds wrong and can skip signing on non-pairip builds.
     # PairIP soft path: default SIGN for no-root sideload (integrity softened by Support/Smali).
     # Only keep unsigned/CRC when user passes -u (VM/MultiApp classic path).
-    pairip_soft = (not isCoreX) and isPairip and isPairip_lib
+    pairip_soft = (not isCoreX) and bool(isPairip)  # dex-only PairIP still soft path
     keep_unsigned = bool(args.unsigned_apk)  # explicit -u only
     if keep_unsigned:
         if not isAPKEditor:

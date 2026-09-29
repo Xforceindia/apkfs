@@ -1,5 +1,6 @@
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
+from ._smali_fix import write_smali, fix_const4_registers
 
 from collections import defaultdict
 from apkfs.engine.Utils.Files_Check import FileCheck
@@ -111,7 +112,7 @@ def AES_Logs_Inject(decompile_dir, smali_folders):
 
                     content = content.replace(match_text, replacement_text)
 
-                open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
+                write_smali(file_path, content) if str(file_path).endswith('.smali') else open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
 
     for pattern, file_paths in targetSmali.items():
 
@@ -201,7 +202,7 @@ def AES_Logs_Inject(decompile_dir, smali_folders):
 
                     content = content.replace(match_text, replacement_text)
 
-                open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
+                write_smali(file_path, content) if str(file_path).endswith('.smali') else open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
 
 
 # ---------------- Copy AES Smali ----------------
@@ -406,7 +407,7 @@ def Patch_Algorithm(smali_folders):
 
                     Count_Applied += 1
 
-                    open(file_path, 'w', encoding='utf-8', errors='ignore').write(new_content)
+                    write_smali(file_path, new_content) if str(file_path).endswith('.smali') else open(file_path, 'w', encoding='utf-8', errors='ignore').write(new_content)
 
             if Count_Applied > 0:
                 print(f"\n{C.S} Tag {C.E} {C.G}{description}")

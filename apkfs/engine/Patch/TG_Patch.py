@@ -4,6 +4,7 @@
 
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
+from ._smali_fix import write_smali, fix_const4_registers
 from apkfs.engine.Utils.Files_Check import FileCheck
 
 F = FileCheck(); F.Set_Path()
@@ -455,7 +456,7 @@ def TG_Smali_Patch(decompile_dir, smali_folders, isAPKEditor):
 
                 count_applied += 1
 
-                open(File_Path, 'w', encoding='utf-8', errors='ignore').write(new_content)
+                write_smali(File_Path, new_content) if str(File_Path).endswith('.smali') else open(File_Path, 'w', encoding='utf-8', errors='ignore').write(new_content)
 
         if count_applied > 0:
             print(f"\n{C.S} Tag {C.E} {C.G}{description}")

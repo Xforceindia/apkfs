@@ -8,7 +8,7 @@ except Exception:
     try:
         from apkfs import __version__ as __version__
     except Exception:
-        __version__ = "1.4.0"
+        __version__ = "1.4.3"
 
 
 def _is_termux() -> bool:

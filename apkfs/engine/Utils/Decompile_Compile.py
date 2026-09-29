@@ -111,12 +111,15 @@ def Decompile_Apk(apk_path, decompile_dir, isEmulator, isAPKEditor, isAES, isAlg
         )
 
     except M.subprocess.CalledProcessError:
-        M.shutil.rmtree(decompile_dir)
+        if M.os.path.isdir(decompile_dir):
+            M.shutil.rmtree(decompile_dir, ignore_errors=True)
 
         print(f"\n{C.ERROR} Decompile {Package_Name}.apk Failed with {AA}  ✘\n")
 
         if not isAPKEditor:
             print(SUGGEST)
+            print(f"{C.INFO} apkfs will auto-retry with APKEditor (-a) when run via auto -i\n")
+            exit(42)  # same fallback as recompile — APKEditor decompile path
 
         exit(1)
 
@@ -151,15 +154,14 @@ def Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, P
     else:
         original_directory = M.os.path.join(decompile_dir, "original")
 
-        for item in M.os.listdir(original_directory):
-            if item != "META-INF":
-
-                item_path = M.os.path.join(original_directory, item)
-
-                if M.os.path.isdir(item_path):
-                    M.shutil.rmtree(item_path)
-                else:
-                    M.os.remove(item_path)
+        if M.os.path.isdir(original_directory):
+            for item in M.os.listdir(original_directory):
+                if item != "META-INF":
+                    item_path = M.os.path.join(original_directory, item)
+                    if M.os.path.isdir(item_path):
+                        M.shutil.rmtree(item_path)
+                    else:
+                        M.os.remove(item_path)
 
         cmd = ["java", "-jar", APKTool_Path, "b", decompile_dir, "-o", build_dir, "-p", decompile_dir, "-f", "--copy-original"]
         aapt2 = _resolve_aapt2()
@@ -204,22 +206,41 @@ def Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, P
 
 # ---------------- FixSigBlock ----------------
 def FixSigBlock(decompile_dir, apk_path, build_dir, rebuild_dir):
+    """Preserve original APK signing block into rebuilt APK (unsigned/CRC path)."""
+
+    if not M.os.path.isfile(build_dir):
+        raise FileNotFoundError(f"FixSigBlock: missing build apk {build_dir}")
 
     M.os.rename(build_dir, rebuild_dir)
 
-    sig_dir = decompile_dir.replace('_decompiled', '_SigBlock')
+    # Work dir next to rebuild — decompile_dir may already be deleted after recompile
+    base = M.os.path.basename(str(decompile_dir).rstrip("/").rstrip("\\"))
+    parent = M.os.path.dirname(rebuild_dir) or "."
+    sig_dir = M.os.path.join(parent, base + "_SigBlock")
 
-    for operation in ["d", "b"]:
-        cmd = ["java", "-jar", F.APKEditor_Path, operation, "-t", "sig", "-i", (apk_path if operation == "d" else rebuild_dir), "-f", "-sig", sig_dir]
-
-        if operation == "b":
-            cmd.extend(["-o", build_dir])
-
-        M.subprocess.run(cmd, check=True, text=True, capture_output=True)
-
-    M.shutil.rmtree(sig_dir)
-
-    M.os.remove(rebuild_dir)
+    try:
+        for operation in ["d", "b"]:
+            cmd = [
+                "java", "-jar", F.APKEditor_Path, operation, "-t", "sig",
+                "-i", (apk_path if operation == "d" else rebuild_dir),
+                "-f", "-sig", sig_dir,
+            ]
+            if operation == "b":
+                cmd.extend(["-o", build_dir])
+            M.subprocess.run(cmd, check=True, text=True, capture_output=True)
+    finally:
+        if M.os.path.isdir(sig_dir):
+            M.shutil.rmtree(sig_dir, ignore_errors=True)
+        if M.os.path.isfile(rebuild_dir) and M.os.path.isfile(build_dir):
+            try:
+                M.os.remove(rebuild_dir)
+            except OSError:
+                pass
+        elif M.os.path.isfile(rebuild_dir) and not M.os.path.isfile(build_dir):
+            try:
+                M.os.rename(rebuild_dir, build_dir)
+            except OSError:
+                pass
 
 
 # ---------------- Sign APK ----------------
@@ -242,4 +263,4 @@ def Sign_APK(build_dir):
         print(f'{C_Line}\n\n')
 
     except M.subprocess.CalledProcessError:
-        exit(f"\n{C.ERROR} Sign Failed !  ✘\n")
+        print(f"\n{C.ERROR} Sign Failed !  ✘\n"); exit(1)

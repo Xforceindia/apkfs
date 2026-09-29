@@ -49,12 +49,21 @@ def Scan_Apk(apk_path, isFlutter, isPairip):
 
     # ---------------- Extract Package Name with APKEditor ----------------
     if not Package_Name:
-        Package_Name = M.subprocess.run(
-            ["java", "-jar", F.APKEditor_Path, "info", "-package", "-i", apk_path],
-            capture_output=True, text=True
-        ).stdout.split('"')[1]
-
-        print(f"\n{C.S} Package Name {C.E} {C.OG}➸❥ {C.P}'{C.G}{Package_Name}{C.P}' {C.G} ✔")
+        try:
+            out = M.subprocess.run(
+                ["java", "-jar", F.APKEditor_Path, "info", "-package", "-i", apk_path],
+                capture_output=True, text=True
+            ).stdout or ""
+            import re as _re
+            _m = _re.search(r'package\s*=\s*"([^"]+)"', out) or _re.search(r'"([^"]+\.[^"]+)"', out)
+            Package_Name = _m.group(1) if _m else (out.split('"')[1] if '"' in out else "")
+        except Exception:
+            Package_Name = ""
+        if Package_Name:
+            print(f"\n{C.S} Package Name {C.E} {C.OG}➸❥ {C.P}'{C.G}{Package_Name}{C.P}' {C.G} ✔")
+        else:
+            print(f"\n{C.WARN} Package Name unresolved — continuing with empty id\n")
+            Package_Name = "unknown"
 
     
     # ---------------- Check Flutter / Pairip Protection ----------------
