@@ -29,8 +29,8 @@ apkfs = "apkfs.cli:main"
 ApkFS = "apkfs.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/xforce/apkfs"
-Repository = "https://github.com/xforce/apkfs.git"
+Homepage = "https://github.com/xforcefs/apkfs"
+Repository = "https://github.com/xforcefs/apkfs.git"
 
 [tool.setuptools]
 include-package-data = true
