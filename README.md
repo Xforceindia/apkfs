@@ -1,178 +1,386 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/MADE%20IN-INDIA-SCRIPT?colorA=%23ff8100&colorB=%23017e40&colorC=%23ff0000&style=for-the-badge" alt="Made in INDIA"/>
+  <img src="https://img.shields.io/badge/NO%20ROOT-TERMUX-0B1F3A?style=for-the-badge&logo=android&logoColor=white" alt="No Root"/>
+  <img src="https://img.shields.io/badge/v1.3.0-Professor%20X%20(FS)-7C3AED?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/ORG-xforce-111111?style=for-the-badge&logo=github" alt="xforce"/>
+</p>
+
+<a name="readme-top"></a>
+
 # apkfs
 
-```
-  apkfs  ·  Professor X (FS)
-  Fully Automatic APK Lab Suite
-```
+<p align="center">
+  <img src="https://readme-typing-svg.herokuapp.com?font=Fira+Code&weight=800&size=34&pause=1000&color=A78BFA&center=true&vCenter=true&random=false&width=520&lines=apkfs;Professor+X+(FS);One+Click+·+Full+Auto" alt="apkfs"/>
+</p>
 
-**One command. Full auto.** (same as old `ApkPatcher -i`)
+<p align="center">
+  <b>Fully Automatic APK Lab Suite</b><br/>
+  <code>apkfs -i YourApp.apk</code> → detect · plan · patch · sign · <code>*_Patched.apk</code>
+</p>
 
-```bash
-apkfs -i firoj.apk
-apkfs -i firoj.apks
-apkfs firoj.apk
-apkfs -i /sdcard/Download/app.apk --fast
-```
-
-**Output (like ApkPatcher):** `firoj_Patched.apk` next to your input file.
-
-
-No flag soup. `apkfs` detects Flutter / PairIP / split APKs, builds a plan, patches, rebuilds, signs, and writes a report.
+<p align="center">
+  <img src="https://img.shields.io/badge/SSL%20%2F%20VPN%20%2F%20NSC-AUTO-blue?style=for-the-badge" alt="SSL"/>
+  <img src="https://img.shields.io/badge/ADS%20CLEAN-AUTO-green?style=for-the-badge" alt="Ads"/>
+  <img src="https://img.shields.io/badge/Flutter%20%2F%20PairIP-DETECT-orange?style=for-the-badge" alt="Flutter"/>
+  <img src="https://img.shields.io/badge/BOOM-SUPER%20PACK-red?style=for-the-badge" alt="Boom"/>
+</p>
 
 ---
 
-## Install — Termux phone (**no root**)
+## Used Source
 
-Runs on Termux userland only — no Magisk/root required.
+<p align="center">
+  <a href="https://github.com/REAndroid/APKEditor"><img src="https://img.shields.io/badge/APKEditor-REAndroid-blue?style=for-the-badge&logo=github" alt="APKEditor"/></a>
+  <a href="https://github.com/iBotPeaches/Apktool"><img src="https://img.shields.io/badge/Apktool-iBotPeaches-orange?style=for-the-badge&logo=github" alt="Apktool"/></a>
+</p>
+<p align="center">
+  <a href="https://mvnrepository.com/artifact/com.android.tools.build/apksig"><img src="https://img.shields.io/badge/ApkSig-Android%20Tools-green?style=for-the-badge&logo=apachemaven" alt="ApkSig"/></a>
+  <a href="https://github.com/google/smali"><img src="https://img.shields.io/badge/Dexlib2%20%2F%20Smali-Google-red?style=for-the-badge&logo=google" alt="Smali"/></a>
+  <a href="https://github.com/radareorg/radare2"><img src="https://img.shields.io/badge/radare2-Flutter%20SSL-purple?style=for-the-badge&logo=github" alt="r2"/></a>
+</p>
+
+---
+
+## Installation Method
+-------
+
+**💢 Requirement PKG 💢**
 
 ```bash
-# 1) packages
-pkg update -y
-pkg install -y python openjdk-17 aapt2 unzip git
-
-# 2) allow /sdcard access (popup once)
 termux-setup-storage
-
-# 3) install apkfs (private repo needs token once)
-#    export APKFS_REPO='https://<GITHUB_TOKEN>@github.com/xforcemob-commits/apkfs.git'
-#    pip install -U "git+${APKFS_REPO}"
-pip install -U git+https://github.com/xforcemob-commits/apkfs.git
-
-# 4) optional Flutter SSL support
-pkg install -y radare2
-pip install -U r2pipe
-
-# 5) check
-apkfs setup          # or: apkfs doctor
+pkg update -y
+pkg upgrade -y
+pkg install -y python openjdk-17 aapt2 unzip git
 ```
 
-One-shot script (from repo):
+**👉🏻 Install apkfs — run any one method**
+
+### 1st. Method — latest main (recommended)
 
 ```bash
+pip install --force-reinstall https://github.com/xforce/apkfs/archive/refs/heads/main.zip
+```
+
+`OR`
+
+```bash
+pip install --force-reinstall https://github.com/xforce/apkfs/archive/refs/heads/main.tar.gz
+```
+
+`OR` (git + token for private repo)
+
+```bash
+pkg install python git
+pip install -U "git+https://<GITHUB_TOKEN>@github.com/xforce/apkfs.git"
+```
+
+### 2nd. Method — editable / local clone
+
+```bash
+git clone https://github.com/xforce/apkfs.git
+cd apkfs
+pip install -U -e .
+```
+
+### 3rd. Method — one-shot Termux script
+
+```bash
+# from repo root
+bash termux-install.sh
+
+# or with private URL
+export APKFS_REPO='https://<TOKEN>@github.com/xforce/apkfs.git'
 bash termux-install.sh
 ```
 
-Jars auto-download into **`~/.apkfs/tools/`** (writable, no root).
-
-### Linux / Windows
+**Optional (Flutter SSL binary pack)**
 
 ```bash
-pip install -U git+https://github.com/xforcemob-commits/apkfs.git
-# need Java 11+
+pkg install -y radare2
+pip install -U r2pipe
 ```
 
----
-
-## Usage
-
-### BOOM super mode (LuckPatcher-style modified APK)
-
-One click pack inspired by LP *create modified APK* (no root):
-
-```bash
-apkfs -i /sdcard/Download/app.apk --boom
-```
-
-Includes: SSL/VPN/NSC · auto ads clean · LVL/signature support · client unlock heuristics · auto backup of original · working-score in report.
-
-```bash
-apkfs -i app.apk                 # safe lab default (no unlock)
-apkfs -i app.apk --unlock        # client unlock only
-apkfs -i app.apk --boom          # full super pack
-```
-
-> Client-side only. Online IAP / Play Integrity are server-checked and will not magically pass.
-
-### Full auto (recommended)
-
-```bash
-# phone paths (Termux)
-apkfs -i /sdcard/Download/app.apk
-apkfs -i /sdcard/Download/app.apks
-apkfs -i /sdcard/Download/app.apk -c /sdcard/HttpCanary/certs/HttpCanary.pem
-
-# relative / cwd also OK
-apkfs -i app.apk
-apkfs -i app.apks
-```
-
-What auto does:
-
-| Detected | Auto action |
-|----------|-------------|
-| any APK | SSL / VPN / mock-location lab smali + `network_security_config` + sign |
-| `.apks/.apkm/.xapk` | merge → then patch |
-| `libflutter.so` | Flutter SSL binary patterns (radare2) |
-| PairIP | soft integrity path (VM/MultiApp friendly) |
-| `--corex` + arm64 split | experimental PairIP CoreX |
-| `-c certs` | embed your proxy CAs |
-
-Also auto while patching:
-
-- **ads / trackers AUTO REMOVE** (AdMob, AppLovin, Unity Ads, … + manifest clean)
-- screenshot `FLAG_SECURE`, USB-debug detection soften
-- disable with `--no-ads` / `--no-usb-ss` if you want to keep them
-
-
-**Never auto:** purchase / paid unlock heuristics (policy).
-
-### Dry-run (plan only)
-
-```bash
-apkfs -i app.apk --dry-run
-```
-
-Writes `*_apkfs_report/plan.json`.
-
-### Merge only
-
-```bash
-apkfs -m app.apks
-```
-
-### PairIP helper
-
-```bash
-apkfs pairip -i app.apk
-apkfs pairip -i app.apks --corex
-```
-
-### Doctor
+**Check**
 
 ```bash
 apkfs doctor
+# jars → ~/.apkfs/tools/   (no root)
 ```
 
-### Manual / legacy power flags
+### Linux / PC
 
 ```bash
-apkfs manual -- -i app.apk -f -p -rmss
+pip install -U "git+https://github.com/xforce/apkfs.git"
+# Java 11+ required
+apkfs doctor
+```
+
+> **Private install (token):**  
+> `pip install -U "git+https://<TOKEN>@github.com/xforce/apkfs.git"`  
+>  
+> GitHub profile brand: **xforce**. If the short login is not active yet, use your  
+> working clone URL with the same token (repo stays private).
+
+---
+
+## Uninstall apkfs
+-----
+
+```bash
+pip uninstall apkfs
 ```
 
 ---
 
-## Brand
+# Usage Example
 
-End-of-run signature:
+## apkfs ( Input Mode )
+-----
 
+**Mode `-i` ➸ Full Auto Lab (Input Your APK Path)**
+
+`Default AUTO pack ➸ SSL · VPN · NSC · ads clean · Support (LVL/sig) · Flutter/PairIP detect · sign`
+
+```bash
+apkfs -i YourApkPath.apk
+apkfs -i YourApkPath.apks
+apkfs YourApkPath.apk
 ```
-🧠⚡  Professor X (FS)  ⚡🧠
+
+**Output (ApkPatcher-style)**
+
+```text
+✔ DONE
+✔ Final APK  ︻デ═一  /sdcard/Download/YourApkPath_Patched.apk
 ```
 
-(Branded end-to-end as Professor X (FS).)
+Patched file is written **next to your input**.
 
 ---
 
-## Modules inside
+**Flag: `-a` ➸ Try with APKEditor (Default Apktool)**
 
-| Layer | Role |
-|-------|------|
-| `apkfs.cli` | user CLI (`-i` full auto) |
-| `apkfs.auto` | detect → plan → drive engine |
-| `apkfs.engine` | battle-tested smali / flutter / pairip / sign core (smali/flutter/pairip patch engine) |
-| `apkfs.brand` | Professor X (FS) banner |
+```bash
+apkfs -i YourApkPath.apk -a
+```
 
-Related research lineage (credits): Apktool, APKEditor, ApkSig, apk-mitm ideas, AbhiTheModder Flutter/TG notes, RKPairip / Pairip string-recovery ecosystem, mitmproxy android-unpinner concepts.
+**Flag: `-c` ➸ Embed Your Capture / Proxy CA**
+
+`With Your Certificate ( .pem / .crt / .cert )`
+
+`If the CA is already trusted under device CA store, you can skip -c — NSC still allows user CAs.`
+
+```bash
+apkfs -i YourApkPath.apk -c YourCertificatePath.cert
+```
+
+`Multiple certificates`
+
+```bash
+apkfs -i YourApkPath.apk -c \
+  /sdcard/HttpCanary/certs/HttpCanary.pem \
+  /sdcard/Download/Reqable/reqable-ca.crt \
+  /sdcard/Download/ProxyPinCA.crt
+```
+
+**Flag: `-e` ➸ Emulator jar set (PC emulator)**
+
+```bash
+apkfs -i YourApkPath.apk -e
+```
+
+**Flag: `-u` ➸ Keep UnSigned APK**
+
+```bash
+apkfs -i YourApkPath.apk -u
+```
+
+---
+
+## Smali / Detect ( Additional Flags )
+-----
+
+**Flag: `-f` / `-p` / `-p -x` ➸ Flutter & PairIP**
+
+`Force Flutter SSL pack (auto-detects libflutter.so by default)`
+
+```bash
+apkfs -i YourApkPath.apk -f
+```
+
+`Force PairIP pack (VM / Multi-App friendly path)`
+
+```bash
+apkfs -i YourApkPath.apk -p
+```
+
+`PairIP CoreX hook (experimental, arm64)`
+
+```bash
+apkfs -i YourApkPath.apk -p -x
+```
+
+**Dedicated PairIP subcommand**
+
+```bash
+apkfs pairip -i YourApkPath.apk
+apkfs pairip -i YourApkPath.apks --corex
+```
+
+**Flag: `-P` ➸ Purchase / Paid / Premium (client heuristics)**
+
+```bash
+apkfs -i YourApkPath.apk -P
+```
+
+> Not silent-default. Same family as `--unlock`. Online IAP / Play Integrity stay server-side.
+
+**Flag: `-rmads` / `-rmss` / `-rmusb`**
+
+Ads clean + screenshot/USB soften are **ON by default** in `-i`.  
+Legacy flags are accepted; to **keep** ads / skip USB-SS:
+
+```bash
+apkfs -i YourApkPath.apk --no-ads
+apkfs -i YourApkPath.apk --no-usb-ss
+```
+
+---
+
+## BOOM Super Mode ( LuckPatcher-inspired )
+-----
+
+**Flag: `--boom` ➸ One-click super pack**
+
+```bash
+apkfs -i YourApkPath.apk --boom
+```
+
+| Layer | Action |
+|-------|--------|
+| Core | SSL / VPN / mock-location lab smali + NSC |
+| Clean | Ads / tracker remove + manifest scrub |
+| Support | LVL / signature / installer re-sign friendly |
+| Unlock | Client purchase / premium heuristics |
+| Safety | Auto backup of original + `working_score` in report |
+
+**Flag: `--unlock` ➸ Client unlock only**
+
+```bash
+apkfs -i YourApkPath.apk --unlock
+```
+
+**Flag: `--no-support` ➸ Skip LVL/signature support pack**
+
+```bash
+apkfs -i YourApkPath.apk --no-support
+```
+
+```bash
+apkfs -i app.apk              # safe lab default (no unlock)
+apkfs -i app.apk --unlock     # client unlock only
+apkfs -i app.apk --boom       # full super pack
+```
+
+> **Lab only.** Client-side patches do **not** guarantee online IAP, license servers, or Play Integrity.
+
+---
+
+## Speed & Quiet
+-----
+
+**Flag: `--fast` ➸ Faster decompile**
+
+`apktool --only-main-classes` (may miss secondary dex)
+
+```bash
+apkfs -i YourApkPath.apk --fast
+# or
+export APKFS_FAST=1
+apkfs -i YourApkPath.apk
+```
+
+**Flag: `--quiet` ➸ Less plan chatter**
+
+```bash
+apkfs -i YourApkPath.apk --quiet
+```
+
+**Defaults already tuned**
+
+- apktool `--no-debug-info`
+- smali worker pool capped (phone-friendly)
+- Termux Java heap via `JAVA_TOOL_OPTIONS` when unset
+
+---
+
+## Merge Mode
+-----
+
+**Mode `-m` ➸ Anti-Split (Only Merge APK)**
+
+`Supported: .apks / .apkm / .xapk`
+
+```bash
+apkfs -m YourApkPath.apks
+```
+
+---
+
+## Plan / Doctor / Manual
+-----
+
+**Dry-run (detect + plan only)**
+
+```bash
+apkfs -i YourApkPath.apk --dry-run
+```
+
+Writes `YourApkPath_apkfs_report/plan.json`.
+
+**Doctor**
+
+```bash
+apkfs doctor
+apkfs setup
+```
+
+**Credits**
+
+```bash
+apkfs -C
+```
+
+**Manual / raw engine flags**
+
+```bash
+apkfs manual -- -i YourApkPath.apk -f -p
+```
+
+**Help**
+
+```bash
+apkfs -h
+apkfs -V
+```
+
+---
+
+## What `-i` Auto Does
+
+| Detected | Auto action |
+|----------|-------------|
+| any APK | SSL / VPN / lab smali + `network_security_config` + sign |
+| `.apks` / `.apkm` / `.xapk` | merge → then patch |
+| `libflutter.so` | Flutter SSL binary patterns (radare2) |
+| PairIP markers | soft integrity path (VM / MultiApp) |
+| `-p -x` / `--corex` | experimental PairIP CoreX (arm64) |
+| `-c certs` | embed your proxy CAs |
+| ads / trackers | **AUTO REMOVE** (AdMob, AppLovin, Unity Ads, …) |
+| USB / screenshot | soften `FLAG_SECURE` / USB-debug checks |
+| billing / LVL | Support_Pack (re-sign friendly) |
+
+**Never silent-default:** purchase / paid unlock → only `-P` / `--unlock` / `--boom`.
 
 ---
 
@@ -183,23 +391,57 @@ Every auto run writes:
 ```text
 YourApp_apkfs_report/
   plan.json
-  report.json
+  report.json          # includes working_score on BOOM runs
+```
+
+Tools cache:
+
+```text
+~/.apkfs/tools/        # jars (writable, no root)
+~/.apkfs/work/         # scratch
 ```
 
 ---
 
-## Safety / legal
+## Brand
 
-For **authorized security testing**, CTF, and your own apps only.  
+```text
+══════════════════════════════════════════════════════════════
+  apkfs  v1.3.0  ·  Professor X (FS)
+  Fully Automatic APK Lab Suite
+══════════════════════════════════════════════════════════════
+
+  🧠⚡  Professor X (FS)  ⚡🧠
+```
+
+---
+
+## Modules
+
+| Layer | Role |
+|-------|------|
+| `apkfs.cli` | ApkPatcher-style `-i` / flags / bare APK path |
+| `apkfs.auto` | detect → plan → pipeline → score |
+| `apkfs.engine` | smali / ads / support / flutter / pairip / sign |
+| `apkfs.brand` | Professor X (FS) banner |
+
+---
+
+## NOTE
+
+## 🇮🇳 Professor X (FS) · xforce 🇮🇳
+
+<p align="center">
+  <a href="https://github.com/xforce/apkfs"><img src="https://img.shields.io/badge/GITHUB-xforce%2Fapkfs-181717?style=for-the-badge&logo=github" alt="GitHub"/></a>
+</p>
+
+**Authorized security testing, CTF, and your own apps only.**  
 Client-side patches do **not** bypass server-side Play Integrity / license.  
 You are responsible for local law and app ToS.
 
----
-
-## Professor X (FS)
-
-```
-apkfs -i app.apk
+```text
+apkfs -i firoj.apk
+# → firoj_Patched.apk
 ```
 
-That’s the whole product.
+<p align="right"><a href="#readme-top">⬆ back to top</a></p>

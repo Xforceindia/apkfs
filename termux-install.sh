@@ -29,10 +29,10 @@ elif [ -f ./pyproject.toml ] && grep -q 'name = "apkfs"' ./pyproject.toml 2>/dev
   pip install -U -e .
 else
   echo "[*] Set APKFS_REPO to your git URL, e.g.:"
-  echo "    export APKFS_REPO='https://<TOKEN>@github.com/xforcemob-commits/apkfs.git'"
+  echo "    export APKFS_REPO='https://<TOKEN>@github.com/xforce/apkfs.git'"
   echo "    bash termux-install.sh"
   # try default private clone style without embedding token here
-  pip install -U "git+https://github.com/xforcemob-commits/apkfs.git" || true
+  pip install -U "git+https://github.com/xforce/apkfs.git" || true
 fi
 
 # optional flutter SSL
