@@ -19,6 +19,7 @@ For authorized testing of apps you own or have permission to test.
 
 from __future__ import annotations
 
+from ._smali_fix import write_smali
 from ..ANSI_COLORS import ANSI
 from ..MODULES import IMPORT
 
@@ -190,6 +191,39 @@ def Support_Smali_Pack(smali_folders, *, unlock: bool = True) -> dict:
             "in-app update available → false",
             "update",
         ),
+        # ---- Get-from-Play-Store nags / force-store dialogs ----
+        (
+            r"(\.method [^(]*(?:shouldShowPlayStore|isPlayStoreRequired|requirePlayStore|mustInstallFromPlay|openPlayStore|gotoPlayStore|launchPlayStore|showPlayStoreDialog|checkPlayStore|verifyPlayStore|redirectToPlayStore|navigateToPlayStore|forcePlayStore|blockIfNotPlayStore)\([^)]*\)Z\s+\.locals \d+)[\s\S]*?(\n.end method)",
+            r"\1\n    const/4 v0, 0x0\n    return v0\2",
+            "play_store_required/show → false",
+            "installer",
+        ),
+        (
+            r"(\.method [^(]*(?:shouldShowPlayStore|openPlayStore|gotoPlayStore|launchPlayStore|showPlayStoreDialog|redirectToPlayStore|navigateToPlayStore)\([^)]*\)V\s+\.locals \d+)[\s\S]*?(\n.end method)",
+            r"\1\n    return-void\2",
+            "play_store_action void empty",
+            "installer",
+        ),
+        # market:// / play.google.com startActivity nops (client nag)
+        (
+            r'(const-string [pv]\d+, "(?:market://details|https?://play\.google\.com/store)[^"]*"[\s\S]{0,400}?invoke-(?:virtual|interface) \{[^}]*\}, Landroid/content/Context;->startActivity\(Landroid/content/Intent;\)V)',
+            r"nop",
+            "startActivity(Play Store) nop",
+            "installer",
+        ),
+        # PairIP / license client without requiring libpairipcore.so
+        (
+            r"(invoke-\w+ \{[^}]*\}, L[^;]*[Pp]air[Ii]p[^;]*;->(?:verifyIntegrity|checkIntegrity|authenticate|checkLicense|doCheck)\([^)]*\)V)",
+            r"nop",
+            "pairip invoke integrity/license nop",
+            "lvl",
+        ),
+        (
+            r"(\.method [^(]*(?:verifyIntegrity|checkIntegrity)\([^)]*\)V\s+\.locals \d+)[\s\S]*?(\n.end method)",
+            r"\1\n    return-void\2",
+            "verifyIntegrity method empty",
+            "signature",
+        ),
     ]
 
     if unlock:
@@ -197,13 +231,13 @@ def Support_Smali_Pack(smali_folders, *, unlock: bool = True) -> dict:
             [
                 # ---- Premium / pro gates (heuristic names — LP style client only) ----
                 (
-                    r"(\.method [^(]*(?:isPremium|isPro|isVip|isVipUser|getIsPremium|getPremium|isSubscribed|hasSubscription|isUnlocked|isProUser|isProVersion|isFullVersion|isLite|wasPurchased|hasPurchased|isPurchased|getPurchaseState|isBillingSetupFinished)\([^)]*\)Z\s+\.locals \d+)[\s\S]*?(\n.end method)",
+                    r"(\.method [^(]*(?:isPremium|isPro|isVip|isVipUser|getIsPremium|getPremium|isSubscribed|hasSubscription|isUnlocked|isProUser|isProVersion|isFullVersion|isLite|wasPurchased|hasPurchased|isPurchased|getPurchaseState|isBillingSetupFinished|isCredit|hasCredit|getCredits|isPaid|isPaidUser|isMember|hasPremium|premiumEnabled|canUsePremium|isRemoveAds|adsRemoved|isAdFree|isAdfree|getIsPro|checkPremium|checkPro)\([^)]*\)Z\s+\.locals \d+)[\s\S]*?(\n.end method)",
                     r"\1\n    const/4 v0, 0x1\n    return v0\2",
                     "premium boolean → true",
                     "unlock",
                 ),
                 (
-                    r"(\.method [^(]*(?:isPremium|isPro|isVip|isSubscribed|hasSubscription|isUnlocked|isPurchased)\([^)]*\)Ljava/lang/Boolean;\s+\.locals \d+)[\s\S]*?(\n.end method)",
+                    r"(\.method [^(]*(?:isPremium|isPro|isVip|isSubscribed|hasSubscription|isUnlocked|isPurchased|isCredit|isPaid|isAdFree|isRemoveAds)\([^)]*\)Ljava/lang/Boolean;\s+\.locals \d+)[\s\S]*?(\n.end method)",
                     r"\1\n    const/4 v0, 0x1\n    invoke-static {v0}, Ljava/lang/Boolean;->valueOf(Z)Ljava/lang/Boolean;\n    move-result-object v0\n    return-object v0\2",
                     "premium Boolean → TRUE",
                     "unlock",
@@ -286,7 +320,7 @@ def Support_Smali_Pack(smali_folders, *, unlock: bool = True) -> dict:
                 continue
             new_c, n = M.re.subn(pattern, repl, content)
             if n:
-                open(fp, "w", encoding="utf-8", errors="ignore").write(new_c)
+                write_smali(fp, new_c)
                 hits += n
                 applied_files.add(fp)
                 stats["by_tag"][tag] = stats["by_tag"].get(tag, 0) + n

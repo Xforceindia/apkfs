@@ -2,6 +2,7 @@ from.Package import P
 
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
+from ._smali_fix import write_smali
 
 C_Line = f"{C.CC}{'_' * 61}"
 
@@ -179,7 +180,7 @@ def Smali_Patch(decompile_dir, smali_folders, isAPKEditor, CA_Cert, isID, isPair
 
 
     # ---------------- isPairip ----------------
-    if isPairip and isPairip_lib:
+    if isPairip:  # soft path even without libpairipcore.so (dex-only PairIP)
         patterns.extend(
             [
                 (
@@ -390,7 +391,7 @@ def Smali_Patch(decompile_dir, smali_folders, isAPKEditor, CA_Cert, isID, isPair
 
                     Count_Applied += 1
 
-                    open(file_path, 'w', encoding='utf-8', errors='ignore').write(new_content)
+                    write_smali(file_path, new_content)
 
             if Count_Applied > 0:
                 print(f"\n{C.S} Tag {C.E} {C.G}{description}")

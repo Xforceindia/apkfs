@@ -18,10 +18,28 @@ def Scan_Apk(apk_path, isFlutter, isPairip):
     # ---------------- Extract Package Name with AAPT ----------------
     if M.os.name == 'posix':
         try:
-            Package_Name = M.subprocess.run(
-                ['aapt2', 'dump', 'packagename', apk_path],
-                capture_output=True, text=True
-            ).stdout.strip()
+            _aapt = M.shutil.which('aapt') or M.shutil.which('aapt2')
+            if not _aapt:
+                for _c in (M.os.path.expanduser('~/.local/bin/aapt'),
+                           M.os.path.expanduser('~/.local/bin/aapt2')):
+                    if M.os.path.isfile(_c):
+                        _aapt = _c
+                        break
+            if _aapt and M.os.path.basename(_aapt) == 'aapt':
+                out = M.subprocess.run(
+                    [_aapt, 'dump', 'badging', apk_path],
+                    capture_output=True, text=True
+                ).stdout or ''
+                import re as _re
+                _m = _re.search(r"package: name='([^']+)'", out)
+                Package_Name = _m.group(1) if _m else ''
+            elif _aapt:
+                Package_Name = M.subprocess.run(
+                    [_aapt, 'dump', 'packagename', apk_path],
+                    capture_output=True, text=True
+                ).stdout.strip()
+            else:
+                Package_Name = ''
 
             if Package_Name:
                 print(f"\n{C.S} Package Name {C.E} {C.OG}➸❥ {C.P}'{C.G}{Package_Name}{C.P}' {C.G} ✔")
@@ -53,61 +71,35 @@ def Scan_Apk(apk_path, isFlutter, isPairip):
     
     # ---------------- Check Flutter Protection ----------------
     if isFlutter_lib:
-        def check_java_installation():
-            try:
-                M.subprocess.run(['radare2', '-v'], capture_output=True, text=True)
-            except (M.subprocess.CalledProcessError, FileNotFoundError):
-                if M.shutil.which('pkg'):
-                    for pkg in ['radare2']:
-                        try:
-                            result = M.subprocess.run(['pkg', 'list-installed'], capture_output=True, text=True)
-                            if pkg not in (result.stdout or ''):
-                                print(f"\n{C.S} Installing {C.E} {C.OG}➸❥ {C.G}{pkg}...\n")
-                                M.subprocess.check_call(['pkg', 'install', '-y', pkg])
-                        except (M.subprocess.CalledProcessError, Exception) as e:
-                            print(f"\n{C.ERROR} radare2 install failed: {e}\n{C.INFO} pkg install radare2\n")
-                            raise SystemExit(1)
-                else:
-                    exit(
-                        f"\n\n{C.ERROR} Radare2 is not installed (needed for Flutter SSL).  ✘\n"
-                        f"\n{C.INFO} Termux: {C.G}pkg install radare2\n"
-                        f"\n{C.INFO} Linux: install radare2 from your distro\n"
-                    )
-
-        check_java_installation()
-
-        FP = f"\n\n{C.S} Flutter Protection {C.E} {C.OG}➸❥ {C.P}'{C.G}libflutter.so{C.P}' {C.G} ✔"
-
-        if not isFlutter:
-            exit(
-                f"{FP}\n\n"
-                f"\n{C.WARN} This is Flutter APK, So For SSL Bypass , Use {C.G} -f  {C.B}Flag:\n\n"
-                f"\n{C.INFO} If APK is Flutter, Then Use Additional Flag: {C.OG}-f"
-                f"{EX}-f {C.Y}-c certificate.cert\n"
-            )
-
-        else:
-            if isFlutter:
+        has_r2 = bool(M.shutil.which("radare2") or M.shutil.which("r2"))
+        if not has_r2:
+            if M.shutil.which("pkg"):
+                try:
+                    print(f"\n{C.S} Installing {C.E} {C.OG}➸❥ {C.G}radare2...\n")
+                    M.subprocess.check_call(["pkg", "install", "-y", "radare2"])
+                    has_r2 = bool(M.shutil.which("radare2") or M.shutil.which("r2"))
+                except Exception as e:
+                    print(f"\n{C.WARN} radare2 install failed: {e}\n")
+            if not has_r2:
+                print(
+                    f"\n{C.WARN} Flutter libflutter.so present but radare2 missing — "
+                    f"skip Flutter SSL binary patch (smali SSL / NSC / Support still apply).\n"
+                    f"{C.INFO} Install: Termux {C.G}pkg install radare2{C.CC} · Linux: place r2 in PATH\n"
+                )
+                isFlutter_lib = False
+        if isFlutter_lib:
+            FP = f"\n\n{C.S} Flutter Protection {C.E} {C.OG}➸❥ {C.P}'{C.G}libflutter.so{C.P}' {C.G} ✔"
+            if not isFlutter:
+                print(f"{FP}\n{C.WARN} Flutter APK — add {C.G}-f{C.CC} (auto -i enables when detected).\n")
+            else:
                 print(FP)
-
 
     # ---------------- Check Pairip Protection ----------------
     if isPairip_lib:
         PP = f"\n\n{C.S} Pairip Protection {C.E} {C.OG}➸❥ {C.P}'{C.G}libpairipcore.so{C.P}' {C.G} ✔"
-
         if not isPairip:
-            exit(
-                f"{PP}\n\n"
-                f"\n{C.WARN} This is Pairip APK, So For SSL Bypass, Use {C.G} -p {C.C} / {C.G} -p -x  {C.C}( <isCoreX> ) {C.B}Flag:\n\n"
-                f"\n{C.INFO} If APK is Pairip, Then Use Additional Flag: {C.OG}-p {C.P}( Without Sign APK Use Only in VM / Multi_App )"
-                f"{EX}-p {C.Y}-c certificate.cert\n\n"
-                f"\n{C.INFO} If APK is Pairip, Then Hook CoreX & Use Additional Flag: {C.OG}-p -x {C.P}( Install Directly Only For [ arm64 ] )"
-                f"{EX}-p -x {C.Y}-c certificate.cert\n\n"
-                f"\n{C.INFO} Note Both Method Not Stable, May be APK Crash {C.P}( So Try Your Luck ) 😂\n"
-            )
-
+            print(f"{PP}\n{C.WARN} PairIP — add {C.G}-p{C.CC} or {C.G}-p -x{C.CC} (auto -i enables -p).\n")
         else:
-            if isPairip:
-                print(PP)
+            print(PP)
 
     return Package_Name, isFlutter_lib, isPairip_lib

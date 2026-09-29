@@ -1,5 +1,6 @@
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
+from ._smali_fix import write_smali
 
 C_Line = f"{C.CC}{'_' * 61}"
 
@@ -165,7 +166,7 @@ def Ads_Smali_Patch(smali_folders):
 
                     Count_Applied += 1
 
-                    open(file_path, 'w', encoding='utf-8', errors='ignore').write(new_content)
+                    write_smali(file_path, new_content)
 
             if Count_Applied > 0:
                 print(f"\n{C.S} Tag {C.E} {C.G}{description}")

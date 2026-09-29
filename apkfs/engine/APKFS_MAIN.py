@@ -238,14 +238,14 @@ def apkfs_main():
     # ---------------- Fix CRC / Sign APK ----------------
     # PairIP soft path / -u keep unsigned (CRC preserve). Parens matter: without them
     # `or unsigned` binds wrong and can skip signing on non-pairip builds.
-    pairip_unsigned = (not isCoreX) and isPairip and isPairip_lib
-    if pairip_unsigned or args.unsigned_apk:
-
+    # PairIP soft path: default SIGN for no-root sideload (integrity softened by Support/Smali).
+    # Only keep unsigned/CRC when user passes -u (VM/MultiApp classic path).
+    pairip_soft = (not isCoreX) and isPairip and isPairip_lib
+    keep_unsigned = bool(args.unsigned_apk)  # explicit -u only
+    if keep_unsigned:
         if not isAPKEditor:
             FixSigBlock(decompile_dir, apk_path, build_dir, rebuild_dir)
-
         CRC_Fix(apk_path, build_dir, ["AndroidManifest.xml", ".dex"])
-
     else:
         Sign_APK(build_dir)
 
@@ -254,8 +254,10 @@ def apkfs_main():
 
     print(f"\n{C.CC}{'_' * 61}\n")
 
-    if pairip_unsigned:
-        print(f'\n{C.FYI}{C.C} This is Pairip Apk So U Install {C.G}( Keep Apk Without Sign ) {C.C}in VM / Multi_App\n')
+    if pairip_soft and keep_unsigned:
+        print(f'\n{C.FYI}{C.C} PairIP unsigned path (-u): install in VM / Multi_App\n')
+    elif pairip_soft:
+        print(f'\n{C.FYI}{C.C} PairIP soft + signed (no-root). If crash, retry with {C.G}-u{C.C} in VM/MultiApp\n')
 
     print(f'\n{C.S} Time Spent {C.E} {C.G}︻デ═一 {C.PN}{M.time.time() - start_time:.2f} {C.CC}Seconds {C.G} ✔\n')
 

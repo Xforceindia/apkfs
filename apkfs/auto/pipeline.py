@@ -180,6 +180,30 @@ def run_auto(
         footer(time.time() - t0)
         return 1
 
+    # 3b) Auto APKEditor fallback when apktool rebuild fails (exit 42)
+    if code == 42 and not plan.engine_flags.get("APKEditor"):
+        print("  ! apktool path failed — AUTO fallback → APKEditor (-a)")
+        print("  · note: big APKs: apktool+aapt2 may sit quiet a while; fallback avoids dead-end")
+        plan.engine_flags["APKEditor"] = True
+        plan.strategies.append("AUTO fallback: APKEditor (-a) after apktool fail")
+        report["auto_a_fallback"] = True
+        try:
+            code = _execute_engine(apk, plan, verbose=verbose)
+            if code == 0:
+                print("  ✔ AUTO -a fallback succeeded")
+        except SystemExit as e:
+            c = e.code
+            if c is None:
+                code = 0
+            elif isinstance(c, int):
+                code = c
+            else:
+                msg = str(c).lower()
+                code = 1 if any(x in msg for x in ("fail", "error", "✘", "not found", "not exist")) else 0
+        except Exception as e:
+            print(f"  ✘ AUTO -a fallback error: {e}")
+            code = 1
+
     report["exit_code"] = code
     report["seconds"] = round(time.time() - t0, 2)
     # Support pack may stash stats via env (engine → auto bridge)

@@ -128,11 +128,12 @@ def build_plan(
             p.warnings.append("CoreX is unstable — app may crash; server integrity still applies")
             p.confidence = min(p.confidence, 0.45)
         else:
-            # Soft path: pairip smali + keep unsigned/CRC style like upstream -p
-            flags["unsigned_apk"] = True
-            p.strategies.append("PairIP smali integrity soften + sig/CRC preserve (VM/MultiApp friendly)")
+            # Soft path: pairip smali + SIGN for no-root sideload (integrity softened).
+            # Pass -u for classic unsigned/CRC VM path.
+            flags["unsigned_apk"] = False
+            p.strategies.append("PairIP smali integrity soften + signed APK (no-root sideload)")
             p.warnings.append(
-                "PairIP soft mode: prefer install in VM/MultiApp; use --corex for experimental direct path"
+                "PairIP soft+signed: if crash on device, retry with -u (VM/MultiApp) or --corex"
             )
             p.confidence = min(p.confidence, 0.6)
 

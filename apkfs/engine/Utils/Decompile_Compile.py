@@ -47,6 +47,8 @@ def _run_tool(cmd, check=True):
     return M.subprocess.run(cmd, check=check, env=env)
 
 
+from ..Patch._smali_fix import scan_fix_smali_tree
+
 C_Line = f"{C.CC}{'_' * 61}"
 
 SUGGEST = (
@@ -126,6 +128,13 @@ def Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, P
 
     AA = f"{'APKEditor' if isAPKEditor else 'APKTool'}"
 
+    try:
+        nfix = scan_fix_smali_tree(decompile_dir)
+        if nfix:
+            print(f"{C.INFO} smali const/4→const/16 fixed in {nfix} file(s)")
+    except Exception as _e:
+        print(f"{C.INFO} smali fix skipped: {_e}")
+
     print(
         f"{C_Line}\n\n"
         f"\n{C.X}{C.C} Recompile APK with {AA}..."
@@ -157,6 +166,7 @@ def Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, P
         if aapt2:
             cmd.extend(["--aapt", aapt2])
             print(f"{C.Y}  · aapt2 : {aapt2}{C.CC}")
+            print(f"{C.Y}  · note  : apktool+aapt2 may run quietly for a while on big APKs — wait{C.CC}")
 
         print(
             f"{C.G}  |\n  └──── {C.CC}Recompiling ~{C.G}$ java -jar {M.os.path.basename(APKTool_Path)} b {M.os.path.basename(decompile_dir)} -o {M.os.path.basename(build_dir)} -f --copy-original\n"
@@ -178,6 +188,8 @@ def Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, P
 
         if not isAPKEditor:
             print(SUGGEST)
+            print(f"{C.INFO} apkfs will auto-retry with APKEditor (-a) when run via auto -i\n")
+            exit(42)
 
         exit(1)
 

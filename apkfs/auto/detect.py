@@ -104,7 +104,10 @@ def detect(path: Path) -> Detection:
             d.has_pairip = True
         if low.endswith("libflutter.so"):
             d.has_flutter = True
-
+        if "flutter_assets" in low or "/flutter/" in low or "res/xml/flutter_" in low:
+            d.has_flutter = True
+        if "kernel_blob.bin" in low or low.endswith("isolate_snapshot_data"):
+            d.has_flutter = True
 
     d.abis = sorted(abis)
     d.has_arm64 = any("arm64" in a for a in d.abis)
@@ -174,20 +177,105 @@ def detect(path: Path) -> Detection:
     if d.has_installer_check:
         d.notes.append("Play Store installer/source checks")
 
+    # Dex markers (PairIP Application class / Flutter JNI often only in classes*.dex)
+    if not d.has_pairip or not d.has_flutter:
+        try:
+            with zipfile.ZipFile(path, "r") as zf:
+                for n in zf.namelist():
+                    low = n.lower()
+                    if not low.endswith(".dex"):
+                        continue
+                    try:
+                        data = zf.read(n)
+                    except Exception:
+                        continue
+                    if not d.has_pairip and (
+                        b"com/pairip" in data or b"com.pairip" in data or b"pairip" in data.lower()
+                    ):
+                        d.has_pairip = True
+                        d.notes.append(f"pairip dex marker in {n}")
+                    if not d.has_flutter and (
+                        b"io.flutter" in data or b"FlutterJNI" in data or b"flutter_assets" in data
+                    ):
+                        d.has_flutter = True
+                        d.notes.append(f"flutter dex marker in {n}")
+                    if d.has_pairip and d.has_flutter:
+                        break
+        except Exception as e:
+            d.notes.append(f"dex scan skipped: {e}")
 
+    # Split bundles: nested base.apk scan
+    if d.is_split and (not d.has_flutter or not d.has_pairip):
+        try:
+            import io
+            with zipfile.ZipFile(path, "r") as zf:
+                inner = [n for n in zf.namelist() if n.lower().endswith(".apk")]
+                inner.sort(key=lambda n: (0 if Path(n).name.lower() == "base.apk" else 1, n))
+                for name in inner[:8]:
+                    try:
+                        data = zf.read(name)
+                    except Exception:
+                        continue
+                    try:
+                        with zipfile.ZipFile(io.BytesIO(data)) as z2:
+                            names2 = z2.namelist()
+                            n2 = "\n".join(x.lower() for x in names2)
+                            if not d.has_flutter and ("flutter_assets" in n2 or "libflutter.so" in n2):
+                                d.has_flutter = True
+                                d.notes.append(f"flutter in nested {name}")
+                            if not d.has_pairip and "pairip" in n2:
+                                d.has_pairip = True
+                                d.notes.append(f"pairip paths in nested {name}")
+                            for x in names2:
+                                if x.startswith("lib/"):
+                                    parts = x.split("/")
+                                    if len(parts) >= 3 and parts[1] not in d.abis:
+                                        d.abis.append(parts[1])
+                                    if parts[-1] == "libflutter.so":
+                                        d.has_flutter = True
+                                    if parts[-1] == "libpairipcore.so":
+                                        d.has_pairip = True
+                            if not d.has_pairip or not d.has_flutter:
+                                for x in names2:
+                                    if not x.lower().endswith(".dex"):
+                                        continue
+                                    try:
+                                        dx = z2.read(x)
+                                    except Exception:
+                                        continue
+                                    if not d.has_pairip and (b"com/pairip" in dx or b"pairip" in dx.lower()):
+                                        d.has_pairip = True
+                                        d.notes.append(f"pairip dex in nested {name}:{x}")
+                                    if not d.has_flutter and (b"io.flutter" in dx or b"FlutterJNI" in dx):
+                                        d.has_flutter = True
+                                    if d.has_pairip and d.has_flutter:
+                                        break
+                    except zipfile.BadZipFile:
+                        pass
+                    if d.has_flutter and d.has_pairip:
+                        break
+            d.abis = sorted(set(d.abis))
+            d.has_arm64 = any("arm64" in a for a in d.abis)
+        except Exception as e:
+            d.notes.append(f"split nested scan skipped: {e}")
 
-    # Optional aapt2 package name (fast)
-    aapt = _which("aapt2") or _which("aapt")
+    if d.has_flutter and "flutter" not in " ".join(d.notes).lower():
+        d.notes.append("flutter assets/engine markers")
+    if d.has_pairip and "pairip" not in " ".join(d.notes).lower():
+        d.notes.append("pairip protection markers")
+
+    # Package name via aapt (prefer aapt dump badging)
+    aapt = _which("aapt") or _which("aapt2")
     if aapt and path.suffix.lower() == ".apk":
         try:
             r = subprocess.run(
                 [aapt, "dump", "badging", str(path)],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
+                capture_output=True, text=True, timeout=30, check=False,
             )
-            m = re.search(r"package: name='([^']+)'", r.stdout or "")
+            out = r.stdout or ""
+            m = re.search(r"package: name='([^']+)'", out)
+            if not m:
+                m = re.search(r'package: name="([^"]+)"', out)
             if m:
                 d.package = m.group(1)
         except Exception:
@@ -196,7 +284,16 @@ def detect(path: Path) -> Detection:
     return d
 
 
+
 def _which(cmd: str) -> str | None:
     from shutil import which
-
-    return which(cmd)
+    import os
+    w = which(cmd)
+    if w:
+        return w
+    for base in (os.path.expanduser("~/.local/bin"), "/usr/local/bin",
+                 "/data/data/com.termux/files/usr/bin"):
+        cand = os.path.join(base, cmd)
+        if os.path.isfile(cand) and os.access(cand, os.X_OK):
+            return cand
+    return None
