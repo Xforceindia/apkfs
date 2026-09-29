@@ -5,6 +5,29 @@ from .Files_Check import FileCheck;
 
 F = FileCheck(); F.Set_Path(); F.isEmulator()
 
+def _resolve_aapt2():
+    """
+    Prefer a real host aapt2 (x86_64/arm Linux or Termux) over apktool's
+    embedded binary — the embedded one is often the wrong arch in lab VMs.
+    Override: export APKFS_AAPT2=/path/to/aapt2
+    """
+    import os
+    from shutil import which
+    cand = os.environ.get("APKFS_AAPT2") or which("aapt2")
+    if cand and M.os.path.isfile(cand) and M.os.access(cand, M.os.X_OK):
+        return cand
+    # common Termux / user locations
+    for p in (
+        M.os.path.expanduser("~/.local/bin/aapt2"),
+        "/data/data/com.termux/files/usr/bin/aapt2",
+        "/usr/bin/aapt2",
+        "/usr/local/bin/aapt2",
+    ):
+        if M.os.path.isfile(p) and M.os.access(p, M.os.X_OK):
+            return p
+    return None
+
+
 def _run_tool(cmd, check=True):
     """Run java/apktool with Termux-friendly env."""
     import os
@@ -16,6 +39,11 @@ def _run_tool(cmd, check=True):
         "com.termux" in env.get("PREFIX", "") or env.get("TERMUX_VERSION")
     ):
         env["JAVA_TOOL_OPTIONS"] = env.get("APKFS_JAVA_OPTS", "-Xmx512m")
+    # Help dynamic aapt2 find libc++ when installed beside ~/.local/lib
+    local_lib = M.os.path.expanduser("~/.local/lib")
+    if M.os.path.isdir(local_lib):
+        prev = env.get("LD_LIBRARY_PATH", "")
+        env["LD_LIBRARY_PATH"] = local_lib + ((":" + prev) if prev else "")
     return M.subprocess.run(cmd, check=check, env=env)
 
 
@@ -125,6 +153,10 @@ def Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, P
                     M.os.remove(item_path)
 
         cmd = ["java", "-jar", APKTool_Path, "b", decompile_dir, "-o", build_dir, "-p", decompile_dir, "-f", "--copy-original"]
+        aapt2 = _resolve_aapt2()
+        if aapt2:
+            cmd.extend(["--aapt", aapt2])
+            print(f"{C.Y}  · aapt2 : {aapt2}{C.CC}")
 
         print(
             f"{C.G}  |\n  └──── {C.CC}Recompiling ~{C.G}$ java -jar {M.os.path.basename(APKTool_Path)} b {M.os.path.basename(decompile_dir)} -o {M.os.path.basename(build_dir)} -f --copy-original\n"
