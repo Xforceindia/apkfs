@@ -1,6 +1,5 @@
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
-from ._smali_fix import write_smali
 
 C_Line = f"{C.CC}{'_' * 61}"
 
@@ -131,7 +130,7 @@ def Ads_Smali_Patch(smali_folders):
         # ---------------- Multiple Threading ----------------
         with M.Manager() as MT:
             Count = MT.Value('i', 0); Lock = MT.Lock()
-            with M.Pool(max(1, min(4, (M.cpu_count() or 2)))) as PL:
+            with M.Pool(M.cpu_count()) as PL:
                 Match_Smali = [path for path in PL.starmap(Regex_Scan, [(Smali_Path, Target_Regex, Count, Lock) for Smali_Path in Smali_Paths]) if path]
 
     except Exception:
@@ -166,7 +165,7 @@ def Ads_Smali_Patch(smali_folders):
 
                     Count_Applied += 1
 
-                    write_smali(file_path, new_content)
+                    open(file_path, 'w', encoding='utf-8', errors='ignore').write(new_content)
 
             if Count_Applied > 0:
                 print(f"\n{C.S} Tag {C.E} {C.G}{description}")

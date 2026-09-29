@@ -56,7 +56,7 @@ OBoyS7CMCG66aSfs3zk4lT8fVwtFJjvkM01gH3A4q6T78rZ/Nkx01GC90Y1+xDAW
 
         open(raw_path, 'w', encoding='utf-8', errors='ignore').write(Default_CERT)
 
-        print(f"\n{C.S} Certificate {C.E}{C.G} Default lab CA embedded (HttpCanary-compatible root)... ✔\n")
+        print(f"\n{C.S} Certificate {C.E}{C.G} The default certificate is from ProfessorX's Modded HttpCanary... ✔\n")
 
         print(f"\n{C.S} Write Default Certificate {C.E} {C.OG}➸❥ {C.Y}{M.os.path.basename(raw_dir)}/apkfs_ca.pem {C.G} ✔\n")
 

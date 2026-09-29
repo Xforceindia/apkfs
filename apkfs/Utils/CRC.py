@@ -28,9 +28,6 @@ def CRC_Fix(apk_path, build_dir, file_types):
 
             mod_crc_bytes = mod_entries[filename][0].to_bytes(4, 'little')
 
-            # Avoid global replace if CRC bytes appear too often (collision risk)
-            if binary_content.count(mod_crc_bytes) > 8:
-                continue
             binary_content = binary_content.replace(mod_crc_bytes, origin_crc_bytes)
 
             Logs.append(

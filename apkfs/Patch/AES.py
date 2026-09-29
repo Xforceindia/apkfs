@@ -1,9 +1,8 @@
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
-from ._smali_fix import write_smali, fix_const4_registers
 
 from collections import defaultdict
-from apkfs.engine.Utils.Files_Check import FileCheck
+from apkfs.Utils.Files_Check import FileCheck
 
 F = FileCheck(); F.Set_Path()
 C_Line = f"{C.CC}{'_' * 61}"
@@ -101,10 +100,10 @@ def AES_Logs_Inject(decompile_dir, smali_folders):
                     return_param = m[2]
 
                     injected_lines = [
-                        f"invoke-static {invoke_param}, LProfessorX_FS/AES;->getInstance(Ljava/lang/Object;)V",
+                        f"invoke-static {invoke_param}, LRK_TECHNO_INDIA/AES;->getInstance(Ljava/lang/Object;)V",
                         f"invoke-static {invoke_param}, Ljavax/crypto/Cipher;->getInstance(Ljava/lang/String;)Ljavax/crypto/Cipher;",
                         f"move-result-object {return_param}",
-                        f"invoke-static {{{return_param}}}, LProfessorX_FS/AES;->getInstance(Ljava/lang/Object;)V",
+                        f"invoke-static {{{return_param}}}, LRK_TECHNO_INDIA/AES;->getInstance(Ljava/lang/Object;)V",
                     ]
 
                     match_text = m[0]
@@ -112,7 +111,7 @@ def AES_Logs_Inject(decompile_dir, smali_folders):
 
                     content = content.replace(match_text, replacement_text)
 
-                write_smali(file_path, content) if str(file_path).endswith('.smali') else open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
+                open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
 
     for pattern, file_paths in targetSmali.items():
 
@@ -183,18 +182,18 @@ def AES_Logs_Inject(decompile_dir, smali_folders):
                             method_name = f"b{idx}"
 
                         injected_lines += [
-                            f"invoke-static {{{param}}}, LProfessorX_FS/AES;->{method_name}(Ljava/lang/Object;)V"
+                            f"invoke-static {{{param}}}, LRK_TECHNO_INDIA/AES;->{method_name}(Ljava/lang/Object;)V"
                         ]
 
                     if parameters > 1:
                         injected_lines += [
-                            "invoke-static {}, LProfessorX_FS/AES;->b()V"
+                            "invoke-static {}, LRK_TECHNO_INDIA/AES;->b()V"
                         ]
 
                     injected_lines += [
                         f"invoke-static {{{invoke_params}}}, {match}",
                         f"move-result-object {return_param}",
-                        f"invoke-static {{{return_param}}}, LProfessorX_FS/AES;->a(Ljava/lang/Object;)V"
+                        f"invoke-static {{{return_param}}}, LRK_TECHNO_INDIA/AES;->a(Ljava/lang/Object;)V"
                     ]
 
                     match_text = m[0]
@@ -202,7 +201,7 @@ def AES_Logs_Inject(decompile_dir, smali_folders):
 
                     content = content.replace(match_text, replacement_text)
 
-                write_smali(file_path, content) if str(file_path).endswith('.smali') else open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
+                open(file_path, 'w', encoding='utf-8', errors='ignore').write(content)
 
 
 # ---------------- Copy AES Smali ----------------
@@ -248,7 +247,7 @@ def Copy_AES_Smali(decompile_dir, smali_folders, manifest_path, isAES_MS, isAlgo
         print(f"\n{C.S} Generate {C.E} {C.G}{dex_name} {C.OG}➸❥ {C.Y}{M.os.path.relpath(dest_path, decompile_dir)} {C.G} ✔")
 
     else:
-        Target_Dest = M.os.path.join(lastSmaliFolder, "ProfessorX_FS", "AES.smali")
+        Target_Dest = M.os.path.join(lastSmaliFolder, "RK_TECHNO_INDIA", "AES.smali")
 
         M.os.makedirs(M.os.path.dirname(Target_Dest), exist_ok=True)
 
@@ -372,7 +371,7 @@ def Patch_Algorithm(smali_folders):
         # ---------------- Multi Threading ----------------
         with M.Manager() as MT:
             Count = MT.Value('i', 0); Lock = MT.Lock()
-            with M.Pool(max(1, min(4, (M.cpu_count() or 2)))) as PL:
+            with M.Pool(M.cpu_count()) as PL:
                 Match_Smali = [path for path in PL.starmap(Regex_Scan, [(Smali_Path, Target_Regex, Count, Lock) for Smali_Path in Smali_Paths]) if path]
 
     except Exception:
@@ -407,7 +406,7 @@ def Patch_Algorithm(smali_folders):
 
                     Count_Applied += 1
 
-                    write_smali(file_path, new_content) if str(file_path).endswith('.smali') else open(file_path, 'w', encoding='utf-8', errors='ignore').write(new_content)
+                    open(file_path, 'w', encoding='utf-8', errors='ignore').write(new_content)
 
             if Count_Applied > 0:
                 print(f"\n{C.S} Tag {C.E} {C.G}{description}")

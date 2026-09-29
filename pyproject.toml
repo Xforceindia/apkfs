@@ -1,47 +1,61 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "apkfs"
-version = "1.4.4"
-description = "apkfs — Professor X (FS) fully automatic APK lab suite (SSL/VPN/Flutter/PairIP auto)"
-readme = "README.md"
-requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Professor X (FS)" }]
-keywords = ["apkfs", "apk", "android", "smali", "ssl", "mitm", "pairip", "flutter"]
-dependencies = [
-  "requests>=2.28",
-  "r2pipe>=1.8",
-  "asn1crypto>=1.5",
-  "multiprocess>=0.70",
+dynamic = ["version"]
+authors = [
+  { name = "Xforceindia", email = "xforceindia@users.noreply.github.com" }
 ]
+
+description = "Smali Patcher ( Bypass 𒁍 SSL & Flutter SSL, VPN, USB Debugging, Screen Restrict, One Device Login, Spoof Info & Package Detection, Ads, AES Logs Inject, TG Patch, Pine HooK )"
+
+license = { text = "MIT" }
+readme = "README.md"
+
+requires-python = ">=3.10"
+
+dependencies = [
+  "requests",
+  "r2pipe",
+  "asn1crypto",
+  "multiprocess"
+]
+
+keywords = ["apkfs"]
+
 classifiers = [
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Topic :: Security",
 ]
 
 [project.scripts]
-apkfs = "apkfs.cli:main"
-ApkFS = "apkfs.cli:main"
-
-[project.urls]
-Homepage = "https://github.com/Xforceindia/apkfs"
-Repository = "https://github.com/Xforceindia/apkfs.git"
+apkfs = "apkfs.APK_PATCHER:apkfs_main"
+ApkFS = "apkfs.APK_PATCHER:apkfs_main"
 
 [tool.setuptools]
 include-package-data = true
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["apkfs*"]
+packages.find = {}
 
-[tool.setuptools.package-data]
-apkfs = [
-  "engine/Utils/Files/*",
-  "engine/Utils/Pine/*",
-  "assets/*",
-]
+package-data = { apkfs = [
+  "Utils/Files/AES.smali",
+  "Utils/Files/Algorithm.dex",
+  "Utils/Files/Hook.smali",
+  "Utils/Files/lib_Pairip_CoreX.so",
+  "Utils/Pine/config.json",
+  "Utils/Pine/libpine32",
+  "Utils/Pine/libpine64",
+  "Utils/Pine/loader.dex"
+] }
+
+
+[project.urls]
+Homepage = "https://github.com/Xforceindia/apkfs"
+Repository = "https://github.com/Xforceindia/apkfs.git"
+Issues = "https://github.com/Xforceindia/apkfs/issues"
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }

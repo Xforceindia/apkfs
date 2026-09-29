@@ -95,11 +95,7 @@ def Patch_Flutter_SSL(decompile_dir, isAPKEditor):
     print(f"\r{C.X}{C.C} Flutter SSL Patch, Script by {C.OG}🇮🇳 AbhiTheM0dder 🇮🇳\n")
 
     try:
-        _rv = get_r2_version()
-        if not _rv:
-            print(f"\n{C.WARN} radare2 version unknown — skip Flutter SSL binary patch\n")
-            return
-        r2_version = tuple(map(int, _rv.split(".")))
+        r2_version = tuple(map(int, get_r2_version().split(".")))
         ia_version = tuple(map(int, "5.9.5".split(".")))
 
         if r2_version <= ia_version:

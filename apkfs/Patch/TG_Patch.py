@@ -4,8 +4,7 @@
 
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
-from ._smali_fix import write_smali, fix_const4_registers
-from apkfs.engine.Utils.Files_Check import FileCheck
+from apkfs.Utils.Files_Check import FileCheck
 
 F = FileCheck(); F.Set_Path()
 
@@ -396,7 +395,7 @@ def TG_Smali_Patch(decompile_dir, smali_folders, isAPKEditor):
         # ---------------- Multiple Threading ----------------
         with M.Manager() as MT:
             Count = MT.Value('i', 0); Lock = MT.Lock()
-            with M.Pool(max(1, min(4, (M.cpu_count() or 2)))) as PL:
+            with M.Pool(M.cpu_count()) as PL:
                 Match_Smali = [path for path in PL.starmap(Regex_Scan, [(Smali_Path, Target_Regex, Count, Lock) for Smali_Path in Smali_Paths]) if path]
 
     except Exception:
@@ -456,7 +455,7 @@ def TG_Smali_Patch(decompile_dir, smali_folders, isAPKEditor):
 
                 count_applied += 1
 
-                write_smali(File_Path, new_content) if str(File_Path).endswith('.smali') else open(File_Path, 'w', encoding='utf-8', errors='ignore').write(new_content)
+                open(File_Path, 'w', encoding='utf-8', errors='ignore').write(new_content)
 
         if count_applied > 0:
             print(f"\n{C.S} Tag {C.E} {C.G}{description}")

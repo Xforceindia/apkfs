@@ -10,7 +10,7 @@ def Fix_Manifest(manifest_path, isPKG, isPine_Hook, Package_Name):
     if isPine_Hook:
         Pine_Hook(manifest_path, Package_Name)
 
-    isPC = bool(M.re.search('piracychecker', open(manifest_path, encoding='utf-8', errors='ignore').read(), M.re.I))
+    isPC = bool(M.re.search('piracychecker', open(manifest_path).read(), M.re.I))
 
     patterns = [
         (

@@ -1,7 +1,7 @@
 from .ANSI_COLORS import ANSI; C = ANSI()
 from .MODULES import IMPORT; M = IMPORT()
 
-from apkfs.engine.Utils.Files_Check import __version__
+from apkfs.Utils.Files_Check import __version__
 
 
 Tag = f"\n{C.CC}————|———————|————{C.G}•❀ {C.OG}Tag {C.G}❀•{C.CC}————|———————|————\n"
@@ -325,19 +325,6 @@ def parse_arguments():
         help=M.argparse.SUPPRESS
     )
 
-
-    parser.add_argument(
-        '--Support_Pack',
-        dest='Support_Pack',
-        action='store_true',
-        help=M.argparse.SUPPRESS
-    )
-    parser.add_argument(
-        '--Support_Unlock',
-        dest='Support_Unlock',
-        action='store_true',
-        help=M.argparse.SUPPRESS
-    )
 
     Ext = ('.apk', '.apks', '.apkm', '.xapk')
 

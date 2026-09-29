@@ -1,7 +1,7 @@
 from ..ANSI_COLORS import ANSI; C = ANSI()
 from ..MODULES import IMPORT; M = IMPORT()
 
-from apkfs.engine.Utils.Files_Check import FileCheck
+from apkfs.Utils.Files_Check import FileCheck
 
 F = FileCheck(); F.Set_Path()
 
