@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apkfs"
-version = "1.3.0"
+version = "1.3.1"
 description = "apkfs — Professor X (FS) fully automatic APK lab suite (SSL/VPN/Flutter/PairIP auto)"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -29,8 +29,8 @@ apkfs = "apkfs.cli:main"
 ApkFS = "apkfs.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/xforcefs/apkfs"
-Repository = "https://github.com/xforcefs/apkfs.git"
+Homepage = "https://github.com/Xforceindia/apkfs"
+Repository = "https://github.com/Xforceindia/apkfs.git"
 
 [tool.setuptools]
 include-package-data = true

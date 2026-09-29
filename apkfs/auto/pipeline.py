@@ -164,7 +164,15 @@ def run_auto(
     try:
         code = _execute_engine(apk, plan, verbose=verbose)
     except SystemExit as e:
-        code = int(e.code) if isinstance(e.code, int) else 1
+        # Mirror _execute_engine: string exit() was often a success log line
+        c = e.code
+        if c is None:
+            code = 0
+        elif isinstance(c, int):
+            code = c
+        else:
+            msg = str(c).lower()
+            code = 1 if any(x in msg for x in ("fail", "error", "✘", "not found", "not exist")) else 0
     except Exception as e:
         print(f"  ✘ engine error: {e}")
         report["error"] = str(e)
@@ -174,6 +182,14 @@ def run_auto(
 
     report["exit_code"] = code
     report["seconds"] = round(time.time() - t0, 2)
+    # Support pack may stash stats via env (engine → auto bridge)
+    try:
+        import os
+        raw = os.environ.pop("APKFS_SUPPORT_STATS", "") or ""
+        if raw:
+            report["support_stats"] = json.loads(raw)
+    except Exception:
+        pass
     try:
         from apkfs.engine.Patch.Support_Pack import support_score
         report["working_score"] = support_score(
@@ -236,7 +252,14 @@ def _run_merge_only(apk: Path, report_dir: Path, t0: float) -> int:
         apkfs_main()
         code = 0
     except SystemExit as e:
-        code = int(e.code) if isinstance(e.code, int) else 0
+        code = e.code
+        if code is None:
+            code = 0
+        elif isinstance(code, int):
+            code = code
+        else:
+            msg = str(code).lower()
+            code = 1 if any(x in msg for x in ("fail", "error", "✘", "not found")) else 0
     except Exception as e:
         print(f"  ✘ merge failed: {e}")
         code = 1
@@ -294,6 +317,10 @@ def _execute_engine(apk: Path, plan: Plan, verbose: bool = False) -> int:
         print(f"    argv  : {' '.join(argv)}")
 
     argv_backup = sys.argv[:]
+    import os
+    quiet_was = os.environ.get("APKFS_QUIET")
+    # Avoid engine wiping the auto banner / clearing Termux scrollback
+    os.environ["APKFS_QUIET"] = "1"
     try:
         sys.argv = argv
         # Import after argv set — engine parses on call
@@ -307,6 +334,15 @@ def _execute_engine(apk: Path, plan: Plan, verbose: bool = False) -> int:
             return 0
         if isinstance(code, int):
             return code
-        return 1
+        # Engine historically used exit("message") on success paths —
+        # treat non-int as success unless message looks like a hard error.
+        msg = str(code).lower()
+        if any(x in msg for x in ("fail", "error", "✘", "not found", "not exist")):
+            return 1
+        return 0
     finally:
         sys.argv = argv_backup
+        if quiet_was is None:
+            os.environ.pop("APKFS_QUIET", None)
+        else:
+            os.environ["APKFS_QUIET"] = quiet_was

@@ -5,7 +5,10 @@ try:
     from importlib.metadata import version as _pkg_version
     __version__ = _pkg_version("apkfs")
 except Exception:
-    __version__ = "1.0.0"
+    try:
+        from apkfs import __version__ as __version__
+    except Exception:
+        __version__ = "1.3.1"
 
 
 def _is_termux() -> bool:

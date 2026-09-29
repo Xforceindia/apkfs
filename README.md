@@ -1,8 +1,8 @@
 <p align="center">
   <img src="https://img.shields.io/badge/MADE%20IN-INDIA-SCRIPT?colorA=%23ff8100&colorB=%23017e40&colorC=%23ff0000&style=for-the-badge" alt="Made in INDIA"/>
   <img src="https://img.shields.io/badge/NO%20ROOT-TERMUX-0B1F3A?style=for-the-badge&logo=android&logoColor=white" alt="No Root"/>
-  <img src="https://img.shields.io/badge/v1.3.0-Professor%20X%20(FS)-7C3AED?style=for-the-badge" alt="Version"/>
-  <img src="https://img.shields.io/badge/ORG-xforcefs-111111?style=for-the-badge&logo=github" alt="xforcefs"/>
+  <img src="https://img.shields.io/badge/v1.3.1-Professor%20X%20(FS)-7C3AED?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/ORG-Xforceindia-111111?style=for-the-badge&logo=github" alt="Xforceindia"/>
 </p>
 
 <a name="readme-top"></a>
@@ -58,33 +58,26 @@ pkg install -y python openjdk-17 aapt2 unzip git
 ### 1st. Method — latest main (recommended)
 
 ```bash
-pip install --force-reinstall https://github.com/xforcefs/apkfs/archive/refs/heads/main.zip
+pip install --force-reinstall https://github.com/Xforceindia/apkfs/archive/refs/heads/main.zip
 ```
 
 `OR`
 
 ```bash
-pip install --force-reinstall https://github.com/xforcefs/apkfs/archive/refs/heads/main.tar.gz
+pip install --force-reinstall https://github.com/Xforceindia/apkfs/archive/refs/heads/main.tar.gz
 ```
 
 `OR` (git)
 
 ```bash
 pkg install python git
-pip install -U "git+https://github.com/xforcefs/apkfs.git"
-```
-
-`OR` (live path until username rename finishes)
-
-```bash
-pip install -U "git+https://github.com/xforcemob-commits/apkfs.git"
-# same public code — redirects after you rename GitHub login → xforcefs
+pip install -U "git+https://github.com/Xforceindia/apkfs.git"
 ```
 
 ### 2nd. Method — editable / local clone
 
 ```bash
-git clone https://github.com/xforcefs/apkfs.git
+git clone https://github.com/Xforceindia/apkfs.git
 cd apkfs
 pip install -U -e .
 ```
@@ -96,7 +89,7 @@ pip install -U -e .
 bash termux-install.sh
 
 # or with private URL
-export APKFS_REPO='https://<TOKEN>@github.com/xforcefs/apkfs.git'
+export APKFS_REPO='https://<TOKEN>@github.com/Xforceindia/apkfs.git'
 bash termux-install.sh
 ```
 
@@ -117,15 +110,14 @@ apkfs doctor
 ### Linux / PC
 
 ```bash
-pip install -U "git+https://github.com/xforcefs/apkfs.git"
+pip install -U "git+https://github.com/Xforceindia/apkfs.git"
 # Java 11+ required
 apkfs doctor
 ```
 
-> **Public repo.** No token needed after install URLs resolve.  
-> Brand / target path: **`github.com/xforcefs/apkfs`**.  
-> If GitHub login rename to `xforcefs` is still pending, install works from the live mirror:  
-> `pip install -U "git+https://github.com/xforcemob-commits/apkfs.git"`
+> **Public repo · no token needed**  
+> Live: **https://github.com/Xforceindia/apkfs**
+
 
 ---
 
@@ -413,7 +405,7 @@ Tools cache:
 
 ```text
 ══════════════════════════════════════════════════════════════
-  apkfs  v1.3.0  ·  Professor X (FS)
+  apkfs  v1.3.1  ·  Professor X (FS)
   Fully Automatic APK Lab Suite
 ══════════════════════════════════════════════════════════════
 
@@ -435,10 +427,10 @@ Tools cache:
 
 ## NOTE
 
-## 🇮🇳 Professor X (FS) · xforcefs 🇮🇳
+## 🇮🇳 Professor X (FS) · Xforceindia 🇮🇳
 
 <p align="center">
-  <a href="https://github.com/xforcefs/apkfs"><img src="https://img.shields.io/badge/GITHUB-xforcefs%2Fapkfs-181717?style=for-the-badge&logo=github" alt="GitHub"/></a>
+  <a href="https://github.com/Xforceindia/apkfs"><img src="https://img.shields.io/badge/GITHUB-Xforceindia%2Fapkfs-181717?style=for-the-badge&logo=github" alt="GitHub"/></a>
 </p>
 
 **Authorized security testing, CTF, and your own apps only.**  

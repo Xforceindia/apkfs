@@ -38,15 +38,16 @@ for module in required_modules:
     try:
         __import__(module)
     except ImportError:
-        print(f"{C.S} Installing {C.E} {C.OG}➸❥ {C.G}{module}...\n")
+        if not M.os.environ.get("APKFS_QUIET"):
+            print(f"{C.S} Installing {C.E} {C.OG}➸❥ {C.G}{module}...\n")
         try:
-            M.subprocess.check_call([M.sys.executable, "-m", "pip", "install", module])
+            M.subprocess.check_call(
+                [M.sys.executable, "-m", "pip", "install", module],
+                stdout=M.subprocess.DEVNULL if M.os.environ.get("APKFS_QUIET") else None,
+            )
             Clear()
         except (M.subprocess.CalledProcessError, Exception):
-            exit(
-                f"\n{C.ERROR} No Internet Connection.  ✘\n"
-                f"\n{C.INFO} Internet Connection is Required to Install {C.G} pip install {module}\n"
-            )
+            raise SystemExit(1)
 
 
 # ---------------- Check Dependencies ---------------
@@ -210,10 +211,15 @@ def apkfs_main():
         # LuckPatcher-inspired support pack (LVL / signature / optional unlock)
         if getattr(args, 'Support_Pack', False) or args.Purchase:
             print(f"\n{C.X}{C.C} Support pack: LVL / signature / client gates…")
-            Support_Smali_Pack(
+            _support_stats = Support_Smali_Pack(
                 smali_folders,
                 unlock=bool(args.Purchase or getattr(args, 'Support_Unlock', False)),
             )
+            # stash for auto-pipeline report (optional consumer)
+            try:
+                M.os.environ["APKFS_SUPPORT_STATS"] = M.json.dumps(_support_stats or {})
+            except Exception:
+                pass
 
         if args.Random_Info:
             Patch_Random_Info(smali_folders, args.Android_ID)
@@ -230,10 +236,13 @@ def apkfs_main():
     Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, Package_Name)
 
     # ---------------- Fix CRC / Sign APK ----------------
-    if not isCoreX and isPairip and isPairip_lib or args.unsigned_apk:
+    # PairIP soft path / -u keep unsigned (CRC preserve). Parens matter: without them
+    # `or unsigned` binds wrong and can skip signing on non-pairip builds.
+    pairip_unsigned = (not isCoreX) and isPairip and isPairip_lib
+    if pairip_unsigned or args.unsigned_apk:
 
         if not isAPKEditor:
-            FixSigBlock(decompile_dir, apk_path, build_dir, rebuild_dir);
+            FixSigBlock(decompile_dir, apk_path, build_dir, rebuild_dir)
 
         CRC_Fix(apk_path, build_dir, ["AndroidManifest.xml", ".dex"])
 
@@ -245,14 +254,15 @@ def apkfs_main():
 
     print(f"\n{C.CC}{'_' * 61}\n")
 
-    if not isCoreX and isPairip and isPairip_lib:
+    if pairip_unsigned:
         print(f'\n{C.FYI}{C.C} This is Pairip Apk So U Install {C.G}( Keep Apk Without Sign ) {C.C}in VM / Multi_App\n')
 
     print(f'\n{C.S} Time Spent {C.E} {C.G}︻デ═一 {C.PN}{M.time.time() - start_time:.2f} {C.CC}Seconds {C.G} ✔\n')
 
     print(f'\n🚩 {C.CC}࿗ {C.OG}Professor X (FS) {C.CC}࿗ 🚩\n     🧠⚡ FS LAB ⚡🧠\n')
 
-    if M.os.name == 'posix':
-        M.subprocess.run(['termux-wake-unlock'], check=False) if M.shutil.which('termux-wake-unlock') else None
-        exit(f"\n{C.X}{C.C} Releasing Wake Lock...\n")
+    if M.os.name == 'posix' and M.shutil.which('termux-wake-unlock'):
+        M.subprocess.run(['termux-wake-unlock'], check=False)
+        print(f"\n{C.X}{C.C} Releasing Wake Lock...\n")
+    # Always integer exit — string exit() made auto-pipeline treat success as failure
     exit(0)
