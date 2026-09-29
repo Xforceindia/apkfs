@@ -5,12 +5,17 @@
   Fully Automatic APK Lab Suite
 ```
 
-**One command. Full auto.**
+**One command. Full auto.** (same as old `ApkPatcher -i`)
 
 ```bash
-apkfs -i YourApp.apk
-apkfs -i YourApp.apks
+apkfs -i firoj.apk
+apkfs -i firoj.apks
+apkfs firoj.apk
+apkfs -i /sdcard/Download/app.apk --fast
 ```
+
+**Output (like ApkPatcher):** `firoj_Patched.apk` next to your input file.
+
 
 No flag soup. `apkfs` detects Flutter / PairIP / split APKs, builds a plan, patches, rebuilds, signs, and writes a report.
 

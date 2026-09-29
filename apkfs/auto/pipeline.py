@@ -32,6 +32,8 @@ def run_auto(
     experimental: bool = False,
     report_dir: Path | None = None,
     verbose: bool = False,
+    quiet: bool = False,
+    force_flags: dict | None = None,
 ) -> int:
     """
     One-shot fully automatic pipeline.
@@ -70,6 +72,22 @@ def run_auto(
         boom=boom,
         experimental=experimental,
     )
+    force_flags = force_flags or {}
+    if force_flags.get("flutter"):
+        plan.engine_flags["Flutter"] = True
+        if "Flutter" not in str(plan.strategies):
+            plan.strategies.append("Flutter SSL (forced -f)")
+    if force_flags.get("pairip"):
+        plan.engine_flags["Pairip"] = True
+        plan.engine_flags["unsigned_apk"] = plan.engine_flags.get("unsigned_apk", True)
+        plan.strategies.append("PairIP pack (forced -p)")
+    if force_flags.get("purchase"):
+        plan.engine_flags["Purchase"] = True
+        plan.engine_flags["Support_Unlock"] = True
+        plan.strategies.append("Purchase heuristics (forced -P)")
+    if force_flags.get("emulator"):
+        plan.engine_flags["For_Emulator"] = True
+
     if use_apkeditor:
         plan.engine_flags["APKEditor"] = True
         plan.strategies.append("decompiler: APKEditor")
@@ -77,10 +95,15 @@ def run_auto(
         plan.engine_flags["unsigned_apk"] = True
         plan.strategies.append("keep unsigned / CRC path")
 
-    for line in plan.lines():
-        print(f"    {line}")
-    for r in plan.reasons:
-        print(f"    why: {r}")
+    if not quiet:
+        for line in plan.lines():
+            print(f"    {line}")
+        for r in plan.reasons:
+            print(f"    why: {r}")
+    else:
+        print(f"    auto → {len(plan.strategies)} steps · conf {plan.confidence:.0%}")
+        for s in plan.strategies[:8]:
+            print(f"      • {s}")
 
     # Report early
     report_dir = (report_dir or apk.parent / f"{apk.stem}_apkfs_report").resolve()
@@ -173,11 +196,19 @@ def run_auto(
     (report_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     if code == 0:
-        print("\n  ✔ apkfs auto finished")
+        # Classic ApkPatcher-style tip: output next to input as *_Patched.apk
+        stem = apk.stem
+        parent = apk.parent
+        candidates = sorted(parent.glob(f"{stem}*_Patched.apk")) + sorted(parent.glob(f"{stem}*Patched*.apk"))
+        out = candidates[-1] if candidates else parent / f"{stem}_Patched.apk"
+        print(f"\n  ✔ DONE")
+        print(f"  ✔ Final APK  ︻デ═一  {out}")
+        print(f"  · report     {report_dir}")
         if is_termux():
-            print("  · output usually next to your APK on /sdcard/…")
+            print("  · install: allow unknown apps, then open the *_Patched.apk")
     else:
         print(f"\n  ! engine exited with code {code}")
+        print("  · tip: retry with  apkfs -i app.apk -a   (APKEditor) or  --fast")
 
     wake_lock(False)
     footer(time.time() - t0)

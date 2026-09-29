@@ -130,7 +130,7 @@ def Ads_Smali_Patch(smali_folders):
         # ---------------- Multiple Threading ----------------
         with M.Manager() as MT:
             Count = MT.Value('i', 0); Lock = MT.Lock()
-            with M.Pool(M.cpu_count()) as PL:
+            with M.Pool(max(1, min(4, (M.cpu_count() or 2)))) as PL:
                 Match_Smali = [path for path in PL.starmap(Regex_Scan, [(Smali_Path, Target_Regex, Count, Lock) for Smali_Path in Smali_Paths]) if path]
 
     except Exception:

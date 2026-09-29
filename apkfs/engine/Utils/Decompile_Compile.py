@@ -5,6 +5,20 @@ from .Files_Check import FileCheck;
 
 F = FileCheck(); F.Set_Path(); F.isEmulator()
 
+def _run_tool(cmd, check=True):
+    """Run java/apktool with Termux-friendly env."""
+    import os
+    env = os.environ.copy()
+    # Prefer user APKFS_JAVA_OPTS; else modest heap on small devices
+    if "JAVA_TOOL_OPTIONS" not in env and "APKFS_JAVA_OPTS" in env:
+        env["JAVA_TOOL_OPTIONS"] = env["APKFS_JAVA_OPTS"]
+    elif "JAVA_TOOL_OPTIONS" not in env and (
+        "com.termux" in env.get("PREFIX", "") or env.get("TERMUX_VERSION")
+    ):
+        env["JAVA_TOOL_OPTIONS"] = env.get("APKFS_JAVA_OPTS", "-Xmx512m")
+    return M.subprocess.run(cmd, check=check, env=env)
+
+
 C_Line = f"{C.CC}{'_' * 61}"
 
 SUGGEST = (
@@ -38,13 +52,20 @@ def Decompile_Apk(apk_path, decompile_dir, isEmulator, isAPKEditor, isAES, isAlg
         )
 
     else:
-        cmd = ["java", "-jar", APKTool_Path, "d", apk_path, "-o", decompile_dir, "-p", decompile_dir, "-f"]
-
-        if isAES or isAlgorithm:
-            cmd += ["--no-debug-info"]
+        # Faster than stock ApkPatcher defaults, still full multi-dex (all patches work):
+        #  --no-debug-info → less smali I/O
+        #  APKFS_FAST=1    → also --only-main-classes (risk: misses code in secondary dex)
+        cmd = [
+            "java", "-jar", APKTool_Path, "d", apk_path,
+            "-o", decompile_dir, "-p", decompile_dir, "-f",
+            "--no-debug-info",
+        ]
+        if M.os.environ.get("APKFS_FAST", "").strip() in ("1", "true", "yes"):
+            cmd.append("--only-main-classes")
+            print(f"{C.Y}  · APKFS_FAST: only-main-classes (faster, may miss secondary dex){C.CC}")
 
         if isPine_Hook:
-            cmd += ["-s"]
+            cmd = ["java", "-jar", APKTool_Path, "d", apk_path, "-o", decompile_dir, "-p", decompile_dir, "-f", "-s"]
 
         print(
             f"{C.G}  |\n  └──── {C.CC}Decompiling ~{C.G}$ java -jar {M.os.path.basename(APKTool_Path)} d {apk_path} -o {M.os.path.basename(decompile_dir)} -f\n"
@@ -52,7 +73,7 @@ def Decompile_Apk(apk_path, decompile_dir, isEmulator, isAPKEditor, isAES, isAlg
         )
 
     try:
-        M.subprocess.run(cmd, check=True)
+        _run_tool(cmd, check=True)
 
         print(
             f"\n{C.X}{C.C} Decompile Successful {C.G} ✔\n"
@@ -111,7 +132,7 @@ def Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, P
         )
 
     try:
-        M.subprocess.run(cmd, check=True)
+        _run_tool(cmd, check=True)
 
         print(
             f"\n{C.X}{C.C} Recompile Successful {C.G} ✔\n"
@@ -170,7 +191,7 @@ def Sign_APK(build_dir):
     )
 
     try:
-        M.subprocess.run(cmd, check=True)
+        _run_tool(cmd, check=True)
 
         print(f"\n{C.X}{C.C} Sign Successful {C.G} ✔\n")
 

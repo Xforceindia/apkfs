@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""apkfs — Professor X (FS) · fully automatic APK lab suite CLI.
+"""apkfs — Professor X (FS)
 
-Termux / no-root friendly — same spirit as original ApkPatcher:
-  pkg install python openjdk-17 aapt2
-  apkfs -i /sdcard/Download/app.apk
+Same simple UX as ApkPatcher:
+  apkfs -i firoj.apk
+  apkfs -i firoj.apks
+  apkfs firoj.apk          # positional also works
+
+Full auto · Termux no-root · fast defaults
 """
 
 from __future__ import annotations
@@ -19,18 +22,21 @@ from apkfs.brand.banner import BRAND, print_banner
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="apkfs",
-        description=f"apkfs v{__version__} — {BRAND} · fully automatic APK lab suite (Termux OK, no root)",
+        description=f"apkfs v{__version__} — {BRAND} · auto APK lab (ApkPatcher-style -i)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
-examples (Termux / phone, no root):
-  termux-setup-storage
-  apkfs -i /sdcard/Download/app.apk
-  apkfs -i app.apk
-  apkfs -i app.apks
-  apkfs -i app.apk -c /sdcard/HttpCanary/certs/HttpCanary.pem
-  apkfs -i app.apk --dry-run
+examples (same spirit as ApkPatcher -i):
+  apkfs -i firoj.apk
+  apkfs -i firoj.apks
+  apkfs firoj.apk
+  apkfs -i /sdcard/Download/app.apk -c cert.pem
+  apkfs -i app.apk --boom
+  apkfs -i app.apk --fast
   apkfs doctor
-  apkfs pairip -i app.apk
+
+default -i AUTO pack:
+  SSL/VPN/NSC · ads remove · LVL/signature support · Flutter/PairIP if detected · sign
+  output: <name>_Patched.apk  (next to input, like ApkPatcher)
 
 {BRAND}
 """,
@@ -40,245 +46,200 @@ examples (Termux / phone, no root):
 
     sub = p.add_subparsers(dest="command")
 
-    p.add_argument("-i", dest="input", help="APK / APKS / APKM / XAPK path (FULL AUTO)")
-    p.add_argument("-m", dest="merge", help="Merge split APK only")
-    p.add_argument("-c", dest="certs", nargs="*", help="Proxy CA cert paths (.pem/.crt)")
-    p.add_argument("--dry-run", action="store_true", help="Detect + plan only, write report")
-    p.add_argument("--corex", action="store_true", help="Experimental PairIP CoreX (arm64/split)")
-    p.add_argument("--experimental", action="store_true", help="Allow experimental strategies")
-    p.add_argument("--boom", action="store_true",
-                   help="SUPER mode: SSL+ads clean+LVL/signature support+client unlock (LP-style modified APK)")
-    p.add_argument("--unlock", action="store_true",
-                   help="Enable client unlock heuristics (isPremium/Billing) without full --boom")
-    p.add_argument("--no-support", action="store_true",
-                   help="Skip LVL/signature support pack")
-    p.add_argument("-a", "--apkeditor", action="store_true", help="Prefer APKEditor decompiler")
+    # Classic ApkPatcher-style
+    p.add_argument("-i", dest="input", help="APK / APKS / APKM / XAPK (FULL AUTO)")
+    # positional APK handled by argv preprocess → -i
+    p.add_argument("-m", dest="merge", help="Merge split APK only (.apks/.apkm/.xapk)")
+    p.add_argument("-c", dest="certs", nargs="*", help="Proxy CA cert(s) .pem/.crt")
+    p.add_argument("-a", "--apkeditor", action="store_true", help="Use APKEditor (fallback decompiler)")
     p.add_argument("-u", "--unsigned", action="store_true", help="Keep unsigned / CRC path")
-    p.add_argument("--no-ads", action="store_true", help="Keep ads (default: AUTO REMOVE ads/trackers while patching)")
-    p.add_argument("--clean", action="store_true", default=False, help=argparse.SUPPRESS)  # reserved; clean is default
-    p.add_argument("--no-usb-ss", action="store_true", help="Skip USB/screenshot lab patches")
-    p.add_argument("--report-dir", type=str, help="Where to write plan/report JSON")
-    p.add_argument("-v", "--verbose", action="store_true", help="Verbose engine argv / logs")
-    p.add_argument("-C", "--credits", action="store_true", help="Show credits")
+    p.add_argument("-e", action="store_true", dest="emulator", help="Emulator jar set")
+    p.add_argument("-f", action="store_true", dest="force_flutter", help="Force Flutter SSL pack")
+    p.add_argument("-p", action="store_true", dest="force_pairip", help="Force PairIP pack")
+    p.add_argument("-x", action="store_true", dest="corex", help="PairIP CoreX (with pairip)")
+    p.add_argument("-P", action="store_true", dest="purchase", help="Client purchase/premium heuristics")
+    p.add_argument("-rmads", action="store_true", dest="rmads_flag", help=argparse.SUPPRESS)
+    p.add_argument("-rmss", action="store_true", dest="rmss_flag", help=argparse.SUPPRESS)
+    p.add_argument("-rmusb", action="store_true", dest="rmusb_flag", help=argparse.SUPPRESS)
 
-    sub.add_parser("doctor", help="Check Java / Termux pkgs / jars")
+    p.add_argument("--dry-run", action="store_true", help="Detect + plan only")
+    p.add_argument("--fast", action="store_true", help="Faster decompile (only-main-classes; may miss secondary dex)")
+    p.add_argument("--boom", action="store_true", help="Super pack + client unlock")
+    p.add_argument("--unlock", action="store_true", help="Client unlock heuristics")
+    p.add_argument("--no-support", action="store_true", help="Skip LVL/signature support pack")
+    p.add_argument("--no-ads", action="store_true", help="Keep ads")
+    p.add_argument("--no-usb-ss", action="store_true", help="Skip USB/screenshot patches")
+    p.add_argument("--quiet", action="store_true", help="Less auto-plan chatter (classic engine logs)")
+    p.add_argument("--report-dir", type=str, help="Report folder")
+    p.add_argument("-v", "--verbose", action="store_true", help="Verbose")
+    p.add_argument("-C", "--credits", action="store_true", help="Credits")
+    p.add_argument("--experimental", action="store_true", help="Experimental strategies")
 
-    sp = sub.add_parser("pairip", help="PairIP-focused workflow (auto flags)")
-    sp.add_argument("-i", dest="input", required=True, help="APK path")
+    sub.add_parser("doctor", help="Check Java / Termux / jars")
+    sub.add_parser("setup", help="Termux one-shot setup")
+
+    sp = sub.add_parser("pairip", help="PairIP-focused auto")
+    sp.add_argument("-i", dest="input", required=True)
     sp.add_argument("--corex", action="store_true")
     sp.add_argument("-c", dest="certs", nargs="*")
     sp.add_argument("-v", "--verbose", action="store_true")
+    sp.add_argument("--fast", action="store_true")
 
-    sm = sub.add_parser("manual", help="Manual engine flags (legacy power-user mode)")
-    sm.add_argument("engine_args", nargs=argparse.REMAINDER, help="Args passed to engine")
-
-    si = sub.add_parser("setup", help="Termux one-shot setup (pkg + pip deps, no root)")
+    sm = sub.add_parser("manual", help="Raw engine flags")
+    sm.add_argument("engine_args", nargs=argparse.REMAINDER)
 
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
+
+    # ApkPatcher-style: bare APK path → -i (avoid subparser eating it)
+    _ext = (".apk", ".apks", ".apkm", ".xapk")
+    if argv:
+        a0 = argv[0]
+        if not a0.startswith("-") and a0.lower().endswith(_ext):
+            argv = ["-i", a0, *argv[1:]]
+        elif (
+            not a0.startswith("-")
+            and a0 not in ("doctor", "setup", "pairip", "manual")
+            and any(a0.lower().endswith(e) or Path(a0).suffix.lower() in _ext for e in _ext)
+        ):
+            argv = ["-i", a0, *argv[1:]]
+
     parser = build_parser()
     args = parser.parse_args(argv)
 
     if args.credits:
         from apkfs.engine.Utils.Credits import Credits
-
         Credits()
         return 0
 
     if args.command == "doctor":
         return cmd_doctor()
-
     if args.command == "setup":
         return cmd_setup()
-
     if args.command == "manual":
         return cmd_manual(args.engine_args)
 
+    # Resolve input: -i OR positional OR pairip
+    input_path = None
     if args.command == "pairip":
+        input_path = args.input
+    else:
+        input_path = args.input
+
+    if getattr(args, "merge", None):
         from apkfs.auto.pipeline import run_auto
         from apkfs.termux_env import resolve_user_path
+        if getattr(args, "fast", False):
+            import os
+            os.environ["APKFS_FAST"] = "1"
+        return run_auto(resolve_user_path(args.merge), merge_only=True, verbose=bool(args.verbose), quiet=bool(getattr(args, "quiet", False)))
 
-        return run_auto(
-            resolve_user_path(args.input),
-            certs=[resolve_user_path(c) for c in (args.certs or [])],
-            force_corex=bool(args.corex),
-            experimental=True,
-            verbose=bool(args.verbose),
-        )
-
-    if args.merge:
+    if args.command == "pairip" or input_path:
         from apkfs.auto.pipeline import run_auto
         from apkfs.termux_env import resolve_user_path
+        import os
 
-        return run_auto(resolve_user_path(args.merge), merge_only=True, verbose=bool(args.verbose))
-
-    if args.input:
-        from apkfs.auto.pipeline import run_auto
-        from apkfs.termux_env import resolve_user_path
+        if getattr(args, "fast", False):
+            os.environ["APKFS_FAST"] = "1"
+        if getattr(args, "quiet", False):
+            os.environ["APKFS_QUIET_PLAN"] = "1"
 
         certs = []
-        for c in args.certs or []:
+        for c in (getattr(args, "certs", None) or []):
             try:
                 certs.append(resolve_user_path(c))
             except FileNotFoundError:
                 certs.append(Path(c).expanduser())
 
         try:
-            apk = resolve_user_path(args.input)
+            apk = resolve_user_path(input_path)
         except FileNotFoundError as e:
             print(f"\n  ✘ {e}\n")
             return 2
 
+        # Classic force flags → engine via plan extras
+        force = {
+            "flutter": bool(getattr(args, "force_flutter", False)),
+            "pairip": bool(getattr(args, "force_pairip", False) or args.command == "pairip"),
+            "purchase": bool(getattr(args, "purchase", False)),
+            "emulator": bool(getattr(args, "emulator", False)),
+        }
+
         return run_auto(
             apk,
             certs=certs or None,
-            dry_run=bool(args.dry_run),
-            force_corex=bool(args.corex),
-            use_apkeditor=bool(args.apkeditor),
-            keep_unsigned=bool(args.unsigned),
-            no_ads=bool(args.no_ads),
-            no_usb_ss=bool(args.no_usb_ss),
-            experimental=bool(args.experimental),
+            dry_run=bool(getattr(args, "dry_run", False)),
+            force_corex=bool(getattr(args, "corex", False)),
+            use_apkeditor=bool(getattr(args, "apkeditor", False)),
+            keep_unsigned=bool(getattr(args, "unsigned", False)),
+            no_ads=bool(getattr(args, "no_ads", False)),
+            no_usb_ss=bool(getattr(args, "no_usb_ss", False)),
             boom=bool(getattr(args, "boom", False)),
-            unlock=bool(getattr(args, "unlock", False)),
+            unlock=bool(getattr(args, "unlock", False) or getattr(args, "purchase", False)),
             no_support=bool(getattr(args, "no_support", False)),
-            report_dir=Path(args.report_dir) if args.report_dir else None,
-            verbose=bool(args.verbose),
+            experimental=bool(getattr(args, "experimental", False)),
+            report_dir=Path(args.report_dir) if getattr(args, "report_dir", None) else None,
+            verbose=bool(getattr(args, "verbose", False)),
+            quiet=bool(getattr(args, "quiet", False)),
+            force_flags=force,
         )
 
     parser.print_help()
-    print(f"\n  {BRAND} — Termux:  apkfs -i /sdcard/Download/YourApp.apk\n")
+    print(f"\n  {BRAND} — like ApkPatcher:\n")
+    print("    apkfs -i firoj.apk")
+    print("    apkfs -i firoj.apks")
+    print("    apkfs firoj.apk\n")
     return 2
 
 
 def cmd_doctor() -> int:
     print_banner()
-    print("  ▶ doctor (Termux / no-root check)\n")
-    import shutil
-    import subprocess
-
+    print("  ▶ doctor\n")
+    import shutil, subprocess
     from apkfs.termux_env import apkfs_home, is_termux
+    from pathlib import Path
 
     ok = True
-    print(f"  {'✔' if is_termux() else '·'} termux   : {'yes (no root needed)' if is_termux() else 'not detected (desktop OK)'}")
+    print(f"  {'✔' if is_termux() else '·'} termux   : {'yes (no root)' if is_termux() else 'desktop OK'}")
     print(f"  ✔ home    : {apkfs_home()}")
-    print(f"  ✔ tools   : {apkfs_home() / 'tools'}")
-
     java = shutil.which("java")
     if java:
         r = subprocess.run([java, "-version"], capture_output=True, text=True)
-        ver = (r.stderr or r.stdout).splitlines()[0] if (r.stderr or r.stdout) else "?"
-        print(f"  ✔ java     : {ver}")
+        print(f"  ✔ java     : {(r.stderr or r.stdout).splitlines()[0]}")
     else:
-        print("  ✘ java     : NOT FOUND")
-        if is_termux():
-            print("             fix: pkg install openjdk-17")
-        else:
-            print("             fix: install OpenJDK 11+")
+        print("  ✘ java     : missing — pkg install openjdk-17")
         ok = False
-
-    for tool, fix in (
-        ("aapt2", "pkg install aapt2"),
-        ("aapt", "pkg install aapt"),
-        ("unzip", "pkg install unzip"),
-        ("radare2", "pkg install radare2   # only if Flutter apps"),
-        ("termux-wake-lock", "pkg install termux-api  # optional"),
-    ):
-        path = shutil.which(tool)
-        mark = "✔" if path else "·"
-        print(f"  {mark} {tool:16} : {path or fix}")
-
-    # jars
+    for tool in ("aapt2", "aapt", "unzip", "radare2"):
+        print(f"  {'✔' if shutil.which(tool) else '·'} {tool:8} : {shutil.which(tool) or 'optional'}")
     tools = apkfs_home() / "tools"
     for jar in ("APKTool.jar", "APKEditor.jar", "ApkSig.jar"):
         jp = tools / jar
-        if jp.exists() and jp.stat().st_size > 50_000:
-            print(f"  ✔ {jar:16} : {jp.stat().st_size // 1024} KB")
-        else:
-            print(f"  · {jar:16} : will auto-download on first run → {jp}")
-
-    try:
-        import requests  # noqa: F401
-        print("  ✔ requests : ok")
-    except ImportError:
-        print("  ✘ requests : pip install requests")
-        ok = False
-
-    # storage
-    if is_termux():
-        sd = Path_shared()
-        print(f"  {'✔' if sd else '·'} storage  : {sd or 'run: termux-setup-storage'}")
-
-    print(f"\n  {BRAND} doctor done")
-    print("  quick start:  apkfs -i /sdcard/Download/app.apk\n")
+        print(f"  {'✔' if jp.exists() and jp.stat().st_size > 50000 else '·'} {jar:16} : {'ok' if jp.exists() else 'auto on first -i'}")
+    print(f"\n  quick:  apkfs -i /sdcard/Download/app.apk\n  {BRAND}\n")
     return 0 if ok else 1
-
-
-def Path_shared():
-    from pathlib import Path
-    for p in (Path.home() / "storage" / "shared", Path("/sdcard"), Path("/storage/emulated/0")):
-        if p.exists():
-            return str(p)
-    return None
 
 
 def cmd_setup() -> int:
     print_banner()
-    print("  ▶ Termux setup (no root)\n")
     from apkfs.termux_env import ensure_termux_pkgs, is_termux, apkfs_home
-
-    if not is_termux():
-        print("  · Not Termux — only ensuring pip deps / home dir")
-    notes = ensure_termux_pkgs(log=lambda m: print(m))
-    for n in notes:
-        print(f"    {n}")
-
     import subprocess
-    pkgs = ["requests", "r2pipe", "asn1crypto", "multiprocess"]
-    print("  → pip install deps")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", *pkgs])
-    print(f"  ✔ APKFS_HOME={apkfs_home()}")
-    print("\n  next:")
-    print("    termux-setup-storage")
-    print("    apkfs doctor")
-    print("    apkfs -i /sdcard/Download/YourApp.apk\n")
-    print(f"  🧠⚡  {BRAND}  ⚡🧠\n")
+    ensure_termux_pkgs(log=print)
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-U", "requests", "r2pipe", "asn1crypto", "multiprocess"])
+    print(f"  ✔ home={apkfs_home()}")
+    print("  next: termux-setup-storage && apkfs -i /sdcard/Download/app.apk\n")
     return 0
 
 
 def cmd_manual(engine_args: list[str]) -> int:
-    args = engine_args
-    if args and args[0] == "--":
-        args = args[1:]
+    args = engine_args[1:] if engine_args and engine_args[0] == "--" else engine_args
     if not args:
-        print("usage: apkfs manual -- -i /sdcard/Download/app.apk -f -p")
+        print("usage: apkfs manual -- -i app.apk -f -p")
         return 2
-    # resolve -i path if present
-    try:
-        from apkfs.termux_env import resolve_user_path
-        out = []
-        i = 0
-        while i < len(args):
-            out.append(args[i])
-            if args[i] in ("-i", "-m", "-c") and i + 1 < len(args):
-                # path may have spaces already joined by engine CLI; try resolve single token
-                try:
-                    out.append(str(resolve_user_path(args[i + 1])))
-                except Exception:
-                    out.append(args[i + 1])
-                i += 2
-                continue
-            i += 1
-        args = out
-    except Exception:
-        pass
-
     sys.argv = ["apkfs", *args]
     from apkfs.engine.APKFS_MAIN import apkfs_main
-
     try:
         apkfs_main()
         return 0

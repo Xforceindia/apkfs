@@ -193,7 +193,7 @@ def Support_Smali_Pack(smali_folders, *, unlock: bool = True) -> dict:
         with M.Manager() as mt:
             count = mt.Value("i", 0)
             lock = mt.Lock()
-            with M.Pool(M.cpu_count()) as pool:
+            with M.Pool(max(1, min(4, (M.cpu_count() or 2)))) as pool:
                 match = [
                     x
                     for x in pool.starmap(
