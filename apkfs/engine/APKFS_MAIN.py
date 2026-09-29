@@ -68,16 +68,19 @@ def check_dependencies():
 
 # ---------------- Install Package ---------------
 def install_package(pkg):
+    """Termux pkg install helper — no-root; no-op outside Termux."""
+    if not M.shutil.which('pkg'):
+        return
     try:
         result = M.subprocess.run(['pkg', 'list-installed'], stdout=M.subprocess.PIPE, stderr=M.subprocess.PIPE, text=True)
-        if pkg not in result.stdout:
+        if pkg not in (result.stdout or ''):
             print(f"{C.S} Installing {C.E} {C.OG}➸❥ {C.G}{pkg}...\n")
             M.subprocess.check_call(['pkg', 'install', '-y', pkg])
             Clear()
-    except (M.subprocess.CalledProcessError, Exception):
-        exit(
-            f"\n\n{C.ERROR} No Internet Connection.  ✘\n"
-            f"\n{C.INFO} Internet Connection is Required to Installation  {C.G}pkg install {pkg}\n"
+    except (M.subprocess.CalledProcessError, Exception) as e:
+        print(
+            f"\n{C.ERROR} Could not auto-install {pkg}: {e}\n"
+            f"{C.INFO} Run manually: {C.G}pkg install {pkg}\n"
         )
 
 F = None  # initialized in _bootstrap()
@@ -160,7 +163,7 @@ def apkfs_main():
     manifest_path = M.os.path.join(decompile_dir, 'AndroidManifest.xml')
 
     if M.os.name == 'posix':
-        M.subprocess.run(['termux-wake-lock'])
+        M.subprocess.run(['termux-wake-lock'], check=False) if M.shutil.which('termux-wake-lock') else None
         print(f"\n{C.X}{C.C} Acquiring Wake Lock...\r")
 
     start_time = M.time.time()
@@ -246,6 +249,6 @@ def apkfs_main():
     print(f'\n🚩 {C.CC}࿗ {C.OG}Professor X (FS) {C.CC}࿗ 🚩\n     🧠⚡ FS LAB ⚡🧠\n')
 
     if M.os.name == 'posix':
-        M.subprocess.run(['termux-wake-unlock'])
+        M.subprocess.run(['termux-wake-unlock'], check=False) if M.shutil.which('termux-wake-unlock') else None
         exit(f"\n{C.X}{C.C} Releasing Wake Lock...\n")
     exit(0)

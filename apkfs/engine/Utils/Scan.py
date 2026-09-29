@@ -57,29 +57,22 @@ def Scan_Apk(apk_path, isFlutter, isPairip):
             try:
                 M.subprocess.run(['radare2', '-v'], capture_output=True, text=True)
             except (M.subprocess.CalledProcessError, FileNotFoundError):
-                if M.os.name == 'posix':
+                if M.shutil.which('pkg'):
                     for pkg in ['radare2']:
                         try:
-
                             result = M.subprocess.run(['pkg', 'list-installed'], capture_output=True, text=True)
-
-                            if pkg not in result.stdout:
+                            if pkg not in (result.stdout or ''):
                                 print(f"\n{C.S} Installing {C.E} {C.OG}➸❥ {C.G}{pkg}...\n")
                                 M.subprocess.check_call(['pkg', 'install', '-y', pkg])
-
-                                M.os.system('cls' if M.os.name == 'nt' else 'clear')
-
-                        except (M.subprocess.CalledProcessError, Exception):
-                            exit(
-                                f"\n\n{C.ERROR} No Internet Connection.  ✘\n"
-                                f"\n{C.INFO} Internet Connection is Required to Installation {C.G} pkg install {pkg}\n"
-                            )
+                        except (M.subprocess.CalledProcessError, Exception) as e:
+                            print(f"\n{C.ERROR} radare2 install failed: {e}\n{C.INFO} pkg install radare2\n")
+                            raise SystemExit(1)
                 else:
                     exit(
-                        f"\n\n{C.ERROR} Radare2 is not installed on Your System.  ✘\n"
-                        f"\n{C.INFO} Install Radare2 and Run Script Again in New CMD.\n"
-                        f"\n{C.INFO} Verify Radare2 Installation {C.G} radare2 -v"
-                )
+                        f"\n\n{C.ERROR} Radare2 is not installed (needed for Flutter SSL).  ✘\n"
+                        f"\n{C.INFO} Termux: {C.G}pkg install radare2\n"
+                        f"\n{C.INFO} Linux: install radare2 from your distro\n"
+                    )
 
         check_java_installation()
 

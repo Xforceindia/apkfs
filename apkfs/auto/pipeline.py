@@ -11,6 +11,7 @@ from typing import Any
 from apkfs.auto.detect import detect
 from apkfs.auto.plan import Plan, build_plan
 from apkfs.brand.banner import footer, print_banner
+from apkfs.termux_env import is_termux, wake_lock
 
 
 def run_auto(
@@ -31,9 +32,14 @@ def run_auto(
     """
     One-shot fully automatic pipeline.
     User-facing entry:  apkfs -i app.apk
+    Termux / no-root safe.
     """
     t0 = time.time()
     print_banner()
+
+    if is_termux():
+        print("  · platform : Termux (no root)")
+        wake_lock(True)
 
     apk = apk.expanduser().resolve()
     print(f"  ▶ input : {apk}")
@@ -96,6 +102,7 @@ def run_auto(
 
     if dry_run:
         print("\n  ✔ dry-run complete — no APK written")
+        wake_lock(False)
         footer(time.time() - t0)
         return 0
 
@@ -122,9 +129,12 @@ def run_auto(
 
     if code == 0:
         print("\n  ✔ apkfs auto finished")
+        if is_termux():
+            print("  · output usually next to your APK on /sdcard/…")
     else:
         print(f"\n  ! engine exited with code {code}")
 
+    wake_lock(False)
     footer(time.time() - t0)
     return code
 

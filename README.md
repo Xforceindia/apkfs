@@ -16,22 +16,44 @@ No flag soup. `apkfs` detects Flutter / PairIP / split APKs, builds a plan, patc
 
 ---
 
-## Install
+## Install — Termux phone (**no root**)
+
+Works like original ApkPatcher on Termux: userland only, no Magisk/root.
 
 ```bash
-# Termux
-pkg install python openjdk-17 aapt2 -y
+# 1) packages
+pkg update -y
+pkg install -y python openjdk-17 aapt2 unzip git
+
+# 2) allow /sdcard access (popup once)
+termux-setup-storage
+
+# 3) install apkfs (private repo needs token once)
+#    export APKFS_REPO='https://<GITHUB_TOKEN>@github.com/xforcemob-commits/apkfs.git'
+#    pip install -U "git+${APKFS_REPO}"
 pip install -U git+https://github.com/xforcemob-commits/apkfs.git
 
-# Linux / Windows (Java 11+ required)
-pip install -U git+https://github.com/xforcemob-commits/apkfs.git
+# 4) optional Flutter SSL support
+pkg install -y radare2
+pip install -U r2pipe
+
+# 5) check
+apkfs setup          # or: apkfs doctor
 ```
 
-Editable (dev):
+One-shot script (from repo):
 
 ```bash
-git clone https://github.com/xforcemob-commits/apkfs.git
-cd apkfs && pip install -e .
+bash termux-install.sh
+```
+
+Jars auto-download into **`~/.apkfs/tools/`** (writable, no root).
+
+### Linux / Windows
+
+```bash
+pip install -U git+https://github.com/xforcemob-commits/apkfs.git
+# need Java 11+
 ```
 
 ---
@@ -41,9 +63,14 @@ cd apkfs && pip install -e .
 ### Full auto (recommended)
 
 ```bash
+# phone paths (Termux)
+apkfs -i /sdcard/Download/app.apk
+apkfs -i /sdcard/Download/app.apks
+apkfs -i /sdcard/Download/app.apk -c /sdcard/HttpCanary/certs/HttpCanary.pem
+
+# relative / cwd also OK
 apkfs -i app.apk
 apkfs -i app.apks
-apkfs -i app.apk -c burp.pem reqable.crt
 ```
 
 What auto does:
