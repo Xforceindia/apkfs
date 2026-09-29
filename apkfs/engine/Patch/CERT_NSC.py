@@ -39,7 +39,7 @@ OBoyS7CMCG66aSfs3zk4lT8fVwtFJjvkM01gH3A4q6T78rZ/Nkx01GC90Y1+xDAW
 
     if CA_Cert:
         for idx, cert_path in enumerate(CA_Cert, start=1):
-            raw_file = f'Techno_India_{idx}.pem' if idx > 1 else 'Techno_India.pem'
+            raw_file = f'apkfs_ca_{idx}.pem' if idx > 1 else 'apkfs_ca.pem'
             M.shutil.copy(cert_path, M.os.path.join(raw_dir, raw_file))
 
             addCERT.append(raw_file)
@@ -52,13 +52,13 @@ OBoyS7CMCG66aSfs3zk4lT8fVwtFJjvkM01gH3A4q6T78rZ/Nkx01GC90Y1+xDAW
         print(f"\n{C.S} Write Certificate {C.E} {C.OG}➸❥ {C.Y}raw/{', '.join(addCERT)} {C.G} ✔\n")
 
     else:
-        raw_path = M.os.path.join(raw_dir, 'Techno_India.pem')
+        raw_path = M.os.path.join(raw_dir, 'apkfs_ca.pem')
 
         open(raw_path, 'w', encoding='utf-8', errors='ignore').write(Default_CERT)
 
-        print(f"\n{C.S} Certificate {C.E}{C.G} The default certificate is from TechnoIndia's Modded HttpCanary... ✔\n")
+        print(f"\n{C.S} Certificate {C.E}{C.G} Default lab CA embedded (HttpCanary-compatible root)... ✔\n")
 
-        print(f"\n{C.S} Write Default Certificate {C.E} {C.OG}➸❥ {C.Y}{M.os.path.basename(raw_dir)}/Techno_India.pem {C.G} ✔\n")
+        print(f"\n{C.S} Write Default Certificate {C.E} {C.OG}➸❥ {C.Y}{M.os.path.basename(raw_dir)}/apkfs_ca.pem {C.G} ✔\n")
 
 
 # ---------------- Write NSC XML ----------------
@@ -103,11 +103,11 @@ def Write_NSC(decompile_dir, isAPKEditor, CA_Cert, xml_file='network_security_co
 
     if CA_Cert:
         for idx, _ in enumerate(CA_Cert, start=1):
-            CERT_Name = f'Techno_India_{idx}' if idx > 1 else 'Techno_India'
+            CERT_Name = f'apkfs_ca_{idx}' if idx > 1 else 'apkfs_ca'
             cert_Entries += f'            <certificates src="@raw/{CERT_Name}" overridePins="true" />\n'
 
     else:
-        cert_Entries += '            <certificates src="@raw/Techno_India" overridePins="true" />\n'
+        cert_Entries += '            <certificates src="@raw/apkfs_ca" overridePins="true" />\n'
 
     NSC_XML = NSC.format(cert_PlaceHolder = cert_Entries.strip())
 
@@ -146,7 +146,7 @@ def update_public_xml(decompile_dir, CA_Cert):
             res_type = match[1]
             res_name = match[2]
 
-            if res_type == "raw" and res_name == "Techno_India":
+            if res_type == "raw" and res_name == "apkfs_ca":
                 raw_found = True
             elif res_type == "xml" and res_name == "network_security_config":
                 xml_found = True
@@ -167,12 +167,12 @@ def update_public_xml(decompile_dir, CA_Cert):
     if not raw_found:
         if CA_Cert:
             for idx, _ in enumerate(CA_Cert, start=1):
-                CERT_Name = f'Techno_India_{idx}' if idx > 1 else 'Techno_India'
+                CERT_Name = f'apkfs_ca_{idx}' if idx > 1 else 'apkfs_ca'
                 new_entries.append(f'  <public id="0x{new_raw_id:08X}" type="raw" name="{CERT_Name}" />\n')
                 new_raw_id += 1
 
         else:
-            new_entries.append(f'  <public id="0x{new_raw_id:08X}" type="raw" name="Techno_India" />\n')
+            new_entries.append(f'  <public id="0x{new_raw_id:08X}" type="raw" name="apkfs_ca" />\n')
 
     if not xml_found:
         new_entries.append(f'  <public id="0x{new_xml_id:08X}" type="xml" name="network_security_config" />\n')

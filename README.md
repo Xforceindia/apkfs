@@ -18,7 +18,7 @@ No flag soup. `apkfs` detects Flutter / PairIP / split APKs, builds a plan, patc
 
 ## Install — Termux phone (**no root**)
 
-Works like original ApkPatcher on Termux: userland only, no Magisk/root.
+Runs on Termux userland only — no Magisk/root required.
 
 ```bash
 # 1) packages
@@ -131,7 +131,7 @@ End-of-run signature:
 🧠⚡  Professor X (FS)  ⚡🧠
 ```
 
-(Replaces older “Jai Shree Ram” banner from upstream lineage.)
+(Branded end-to-end as Professor X (FS).)
 
 ---
 
@@ -141,7 +141,7 @@ End-of-run signature:
 |-------|------|
 | `apkfs.cli` | user CLI (`-i` full auto) |
 | `apkfs.auto` | detect → plan → drive engine |
-| `apkfs.engine` | battle-tested smali / flutter / pairip / sign core (upgraded fork of ApkPatcher lineage) |
+| `apkfs.engine` | battle-tested smali / flutter / pairip / sign core (smali/flutter/pairip patch engine) |
 | `apkfs.brand` | Professor X (FS) banner |
 
 Related research lineage (credits): Apktool, APKEditor, ApkSig, apk-mitm ideas, AbhiTheModder Flutter/TG notes, RKPairip / Pairip string-recovery ecosystem, mitmproxy android-unpinner concepts.

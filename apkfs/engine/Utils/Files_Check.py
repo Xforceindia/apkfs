@@ -53,10 +53,10 @@ M.os.makedirs(pine_dir, exist_ok=True)
 M.os.makedirs(run_dir, exist_ok=True)
 
 
-# Upstream tool mirrors that actually exist (public releases)
+# Public tool mirrors (jars/so only — not product branding).
+# Hosted on existing public release CDN so Termux installs work offline-of-our-org.
 _T = "https://github.com/TechnoIndian/Tools/releases/download/Tools"
 _PINE = "https://github.com/TechnoIndian/PineHookPlus/releases/download/v1.0"
-_OBJ = "https://raw.githubusercontent.com/TechnoIndian/Objectlogger/refs/heads/main"
 
 
 class FileCheck:
@@ -167,7 +167,7 @@ class FileCheck:
 
     # ---------------- Files Download Link ----------------
     def F_D(self):
-        # Termux uses APKTool_Termux.jar (same as original ApkPatcher)
+        # Termux uses APKTool_Termux.jar (Termux-optimized build)
         is_win = M.os.name == "nt"
         apktool_url = f"{_T}/APKTool.jar" if is_win else f"{_T}/APKTool_Termux.jar"
         apktool_sum = (
@@ -183,12 +183,10 @@ class FileCheck:
                 (apktool_url, self.APKTool_Path, apktool_sum),
                 (f"{_T}/ApkSig.jar", self.ApkSig,
                  "f91862c60910f2d85b950c1bee8e0f48494e29202f70b87a957e05314caa616d"),
-                (f"{_OBJ}/AES.smali", self.AES_Smali,
-                 "09db8c8d1b08ec3a2680d2dc096db4aa8dd303e36d0e3c2357ef33226a5e5e52"),
+                # AES.smali: use bundled rebranded asset (skip upstream download)
                 (f"{_T}/Algorithm.dex", self.Algorithm_Dex,
                  "f5c7f7764b45cb375aa3da0d78b6a0d141ec2d6b17bba81666c50e1ae8ab1fc3"),
-                (f"{_OBJ}/Hook.smali", self.Hook_Smali,
-                 "c62ac39b468eeda30d0732f947ab6c118f44890a51777f7787f1b11f8f3722c4"),
+                # Hook.smali: bundled
                 (f"{_T}/lib_Pairip_CoreX.so", self.Pairip_CoreX,
                  "22a7954092001e7c87f0cacb7e2efb1772adbf598ecf73190e88d76edf6a7d2a"),
                 (f"{_PINE}/config.json", self.config,
