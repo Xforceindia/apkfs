@@ -438,8 +438,8 @@ Client-side patches do **not** bypass server-side Play Integrity / license.
 You are responsible for local law and app ToS.
 
 ```text
-apkfs -i firoj.apk
-# → firoj_Patched.apk
+apkfs -i app.apk
+# → app_Patched.apk
 ```
 
 <p align="right"><a href="#readme-top">⬆ back to top</a></p>

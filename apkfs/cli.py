@@ -2,9 +2,9 @@
 """apkfs — Professor X (FS)
 
 Same simple UX as ApkPatcher:
-  apkfs -i firoj.apk
-  apkfs -i firoj.apks
-  apkfs firoj.apk          # positional also works
+  apkfs -i app.apk
+  apkfs -i app.apks
+  apkfs app.apk          # positional also works
 
 Full auto · Termux no-root · fast defaults
 """
@@ -26,9 +26,9 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=f"""
 examples (same spirit as ApkPatcher -i):
-  apkfs -i firoj.apk
-  apkfs -i firoj.apks
-  apkfs firoj.apk
+  apkfs -i app.apk
+  apkfs -i app.apks
+  apkfs app.apk
   apkfs -i /sdcard/Download/app.apk -c cert.pem
   apkfs -i app.apk --boom
   apkfs -i app.apk --fast
@@ -189,9 +189,9 @@ def main(argv: list[str] | None = None) -> int:
 
     parser.print_help()
     print(f"\n  {BRAND} — like ApkPatcher:\n")
-    print("    apkfs -i firoj.apk")
-    print("    apkfs -i firoj.apks")
-    print("    apkfs firoj.apk\n")
+    print("    apkfs -i app.apk")
+    print("    apkfs -i app.apks")
+    print("    apkfs app.apk\n")
     return 2
 
 
