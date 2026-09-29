@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "apkfs"
-version = "1.4.3"
+version = "1.4.4"
 description = "apkfs — Professor X (FS) fully automatic APK lab suite (SSL/VPN/Flutter/PairIP auto)"
 readme = "README.md"
 requires-python = ">=3.10"

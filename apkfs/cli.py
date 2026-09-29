@@ -34,9 +34,11 @@ examples (same spirit as ApkPatcher -i):
   apkfs -i app.apk --fast
   apkfs doctor
 
-default -i AUTO pack:
-  SSL/VPN/NSC · ads remove · LVL/signature support · Flutter/PairIP if detected · sign
-  output: <name>_Patched.apk  (next to input, like ApkPatcher)
+default -i AUTO pack (like ApkPatcher -i — no extra flags needed):
+  SSL/VPN/NSC · ads remove · LVL/signature/Play Store support · Flutter/PairIP if detected · sign
+  auto APKEditor fallback if apktool fails
+  output: <name>_Patched.apk  (next to input)
+  spaces OK:  apkfs -i Numberbox.apk  |  apkfs -i "Number Box.apk"
 
 {BRAND}
 """,
@@ -91,10 +93,70 @@ default -i AUTO pack:
     return p
 
 
+def _join_spaced_apk_argv(argv: list[str]) -> list[str]:
+    """
+    ApkPatcher-friendly: allow unquoted spaces in APK path.
+      apkfs -i Number Box.apk
+      apkfs Number Box.apk
+    joins consecutive non-flag tokens until an apk/apks/apkm/xapk suffix.
+    """
+    _ext = (".apk", ".apks", ".apkm", ".xapk")
+    out: list[str] = []
+    i = 0
+    n = len(argv)
+    while i < n:
+        a = argv[i]
+        # after -i / -m / -c take following tokens
+        if a in ("-i", "-m") and i + 1 < n:
+            out.append(a)
+            i += 1
+            parts = [argv[i]]
+            i += 1
+            while i < n and not argv[i].startswith("-"):
+                parts.append(argv[i])
+                joined = " ".join(parts)
+                if joined.lower().endswith(_ext):
+                    i += 1
+                    break
+                # if single token already has ext, stop
+                if parts[-1].lower().endswith(_ext):
+                    i += 1
+                    break
+                i += 1
+            out.append(" ".join(parts))
+            continue
+        if a == "-c":
+            out.append(a)
+            i += 1
+            # certs: keep taking until flag or end (no space-join needed usually)
+            while i < n and not argv[i].startswith("-"):
+                out.append(argv[i])
+                i += 1
+            continue
+        out.append(a)
+        i += 1
+
+    # bare path with spaces at start: Number Box.apk → -i Number Box.apk
+    if out and not out[0].startswith("-") and out[0] not in ("doctor", "setup", "pairip", "manual"):
+        # collect until ext
+        parts = [out[0]]
+        j = 1
+        while j < len(out) and not out[j].startswith("-") and out[j] not in ("doctor", "setup", "pairip", "manual"):
+            parts.append(out[j])
+            j += 1
+        joined = " ".join(parts)
+        if joined.lower().endswith(_ext) or any(parts[-1].lower().endswith(e) for e in _ext):
+            rest = out[j:]
+            out = ["-i", joined, *rest]
+        elif not out[0].startswith("-") and Path(out[0]).suffix.lower() in _ext:
+            out = ["-i", out[0], *out[1:]]
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
 
-    # ApkPatcher-style: bare APK path → -i (avoid subparser eating it)
+    # ApkPatcher-style: bare APK path → -i ; join spaced names
     _ext = (".apk", ".apks", ".apkm", ".xapk")
     if argv:
         a0 = argv[0]
@@ -106,6 +168,7 @@ def main(argv: list[str] | None = None) -> int:
             and any(a0.lower().endswith(e) or Path(a0).suffix.lower() in _ext for e in _ext)
         ):
             argv = ["-i", a0, *argv[1:]]
+    argv = _join_spaced_apk_argv(argv)
 
     parser = build_parser()
     args = parser.parse_args(argv)

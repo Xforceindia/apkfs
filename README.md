@@ -1,7 +1,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/MADE%20IN-INDIA-SCRIPT?colorA=%23ff8100&colorB=%23017e40&colorC=%23ff0000&style=for-the-badge" alt="Made in INDIA"/>
   <img src="https://img.shields.io/badge/NO%20ROOT-TERMUX-0B1F3A?style=for-the-badge&logo=android&logoColor=white" alt="No Root"/>
-  <img src="https://img.shields.io/badge/v1.4.3-Professor%20X%20(FS)-7C3AED?style=for-the-badge" alt="Version"/>
+  <img src="https://img.shields.io/badge/v1.4.4-Professor%20X%20(FS)-7C3AED?style=for-the-badge" alt="Version"/>
   <img src="https://img.shields.io/badge/ORG-Xforceindia-111111?style=for-the-badge&logo=github" alt="Xforceindia"/>
 </p>
 
@@ -442,7 +442,7 @@ Tools cache:
 
 ```text
 ══════════════════════════════════════════════════════════════
-  apkfs  v1.4.3  ·  Professor X (FS)
+  apkfs  v1.4.4  ·  Professor X (FS)
   Fully Automatic APK Lab Suite
 ══════════════════════════════════════════════════════════════
 

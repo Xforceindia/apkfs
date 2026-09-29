@@ -194,11 +194,22 @@ def apkfs_main():
     apk_path = Anti_Split(apk_path, args.Merge, isCoreX)
 
     # ---------------- Set All Paths Directory ----------------
-    decompile_dir = M.os.path.join(M.os.path.expanduser("~"), f"{M.os.path.splitext(M.os.path.basename(apk_path))[0]}_decompiled")
+    # ApkPatcher-style output next to input: <name>_Patched.apk
+    # Work dirs: sanitize spaces (tools break on "Number Box_decompiled")
+    _base = M.os.path.splitext(M.os.path.basename(apk_path))[0]
+    _safe = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in _base).strip("_") or "app"
+    while "__" in _safe:
+        _safe = _safe.replace("__", "_")
 
-    build_dir = M.os.path.abspath(M.os.path.join(M.os.path.dirname(apk_path), f"{M.os.path.splitext(M.os.path.basename(apk_path))[0]}_Patched.apk"))
+    decompile_dir = M.os.path.join(M.os.path.expanduser("~"), f"{_safe}_decompiled")
 
-    rebuild_dir = build_dir.replace('_Patched.apk', '_Patch.apk')
+    build_dir = M.os.path.abspath(
+        M.os.path.join(M.os.path.dirname(apk_path) or ".", f"{_base}_Patched.apk")
+    )
+
+    rebuild_dir = M.os.path.abspath(
+        M.os.path.join(M.os.path.dirname(apk_path) or ".", f"{_safe}_Patch.apk")
+    )
 
     manifest_path = M.os.path.join(decompile_dir, 'AndroidManifest.xml')
 
