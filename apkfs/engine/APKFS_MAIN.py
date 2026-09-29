@@ -226,56 +226,73 @@ def apkfs_main():
 
     smali_folders = Find_Smali_Folders(decompile_dir, isAPKEditor, args.Pine_Hook)
 
-    # ---------------- Pine Hook (optional exclusive path) ----------------
-    if args.Pine_Hook:
+    # ---------------- Patch paths (ApkPatcher-compatible control flow) ----------------
+    want_addons = bool(
+        args.AES_Logs or args.Algorithm or args.Remove_Ads or args.Random_Info
+        or args.Pine_Hook or args.TG_Patch
+        or getattr(args, 'Support_Pack', False) or args.Purchase
+    )
+    force_core = bool(
+        isFlutter or isPairip or isCoreX or args.CA_Certificate
+        or args.Remove_SS or args.Remove_USB or args.Spoof_PKG
+        or not want_addons
+    )
+    if getattr(args, 'Support_Pack', False) or args.Purchase or (want_addons and (isFlutter or isPairip)):
+        force_core = True
+
+    if args.Pine_Hook and not force_core:
         Pine_Hook_Patch(decompile_dir, isAPKEditor, args.Load_Modules, smali_folders)
         Fix_Manifest(manifest_path, args.Spoof_PKG, args.Pine_Hook, Package_Name)
-    else:
-        # -------- CORE lab patches ALWAYS (SSL / VPN / Flutter / PairIP / NSC) --------
-        # (apkfs fix: older logic skipped core when -rmads was on)
-
+    elif want_addons and not force_core:
+        # ApkPatcher exclusive add-on branch (no SSL/NSC) — pure -rmads etc.
+        if args.Pine_Hook:
+            Pine_Hook_Patch(decompile_dir, isAPKEditor, args.Load_Modules, smali_folders)
         if args.AES_Logs or args.Algorithm:
             Copy_AES_Smali(decompile_dir, smali_folders, manifest_path, args.AES_S, args.Algorithm, isAPKEditor)
             Permission_Manifest(decompile_dir, manifest_path, isAPKEditor)
-
+        if args.Remove_Ads:
+            Ads_Smali_Patch(smali_folders)
+        if args.Random_Info:
+            Patch_Random_Info(smali_folders, args.Android_ID)
+        if args.TG_Patch:
+            TG_Smali_Patch(decompile_dir, smali_folders, isAPKEditor)
+        Fix_Manifest(manifest_path, args.Spoof_PKG, args.Pine_Hook, Package_Name)
+    else:
+        # CORE (ApkPatcher else-branch) + optional add-ons after
+        if args.Pine_Hook:
+            Pine_Hook_Patch(decompile_dir, isAPKEditor, args.Load_Modules, smali_folders)
+        if args.AES_Logs or args.Algorithm:
+            Copy_AES_Smali(decompile_dir, smali_folders, manifest_path, args.AES_S, args.Algorithm, isAPKEditor)
+            Permission_Manifest(decompile_dir, manifest_path, isAPKEditor)
         if isFlutter and isFlutter_lib:
             Patch_Flutter_SSL(decompile_dir, isAPKEditor)
-
         if isCoreX and isPairip and isPairip_lib and Check_CoreX(decompile_dir, isAPKEditor):
             M.shutil.rmtree(decompile_dir)
             exit(1)
-
         Smali_Patch(decompile_dir, smali_folders, isAPKEditor, args.CA_Certificate, args.Android_ID, isPairip, isPairip_lib, args.Spoof_PKG, args.Purchase, args.Remove_SS, Skip_Patch, args.Remove_USB, isCoreX)
-
         if isCoreX and isPairip and isPairip_lib:
-            Hook_Core(apk_path, decompile_dir, isAPKEditor, Package_Name)  # merged path if split
-
-        # -------- CLEAN / REMOVE (auto with patch) --------
+            Hook_Core(apk_path, decompile_dir, isAPKEditor, Package_Name)
         if args.Remove_Ads:
-            print(f"\n{C.X}{C.C} Auto clean: ads / trackers / update prompts…")
+            print(f"\n{C.X}{C.C} Ads / trackers clean…")
             Ads_Smali_Patch(smali_folders)
-            Clean_Manifest_Ads(manifest_path)
-
-        # LuckPatcher-inspired support pack (LVL / signature / optional unlock)
+            try:
+                Clean_Manifest_Ads(manifest_path)
+            except Exception:
+                pass
         if getattr(args, 'Support_Pack', False) or args.Purchase:
             print(f"\n{C.X}{C.C} Support pack: LVL / signature / client gates…")
             _support_stats = Support_Smali_Pack(
                 smali_folders,
                 unlock=bool(args.Purchase or getattr(args, 'Support_Unlock', False)),
             )
-            # stash for auto-pipeline report (optional consumer)
             try:
                 M.os.environ["APKFS_SUPPORT_STATS"] = M.json.dumps(_support_stats or {})
             except Exception:
                 pass
-
         if args.Random_Info:
             Patch_Random_Info(smali_folders, args.Android_ID)
-
         if args.TG_Patch:
             TG_Smali_Patch(decompile_dir, smali_folders, isAPKEditor)
-
-        # -------- Manifest + Network Security (always for lab MITM) --------
         Fix_Manifest(manifest_path, args.Spoof_PKG, args.Pine_Hook, Package_Name)
         Patch_Manifest(decompile_dir, manifest_path)
         Write_NSC(decompile_dir, isAPKEditor, args.CA_Certificate)
@@ -283,13 +300,10 @@ def apkfs_main():
     # ---------------- Recompile APK ----------------
     Recompile_Apk(decompile_dir, apk_path, build_dir, isEmulator, isAPKEditor, Package_Name)
 
-    # ---------------- Fix CRC / Sign APK ----------------
-    # PairIP soft path / -u keep unsigned (CRC preserve). Parens matter: without them
-    # `or unsigned` binds wrong and can skip signing on non-pairip builds.
-    # PairIP soft path: default SIGN for no-root sideload (integrity softened by Support/Smali).
-    # Only keep unsigned/CRC when user passes -u (VM/MultiApp classic path).
-    pairip_soft = (not isCoreX) and bool(isPairip)  # dex-only PairIP still soft path
-    keep_unsigned = bool(args.unsigned_apk)  # explicit -u only
+    # ---------------- Fix CRC / Sign APK (ApkPatcher-identical) ----------------
+    # unsigned/CRC when (PairIP + libpairipcore + not CoreX) OR explicit -u
+    pairip_unsigned = (not isCoreX) and bool(isPairip) and bool(isPairip_lib)
+    keep_unsigned = pairip_unsigned or bool(args.unsigned_apk)
     if keep_unsigned:
         if not isAPKEditor:
             FixSigBlock(decompile_dir, apk_path, build_dir, rebuild_dir)
@@ -302,10 +316,10 @@ def apkfs_main():
 
     print(f"\n{C.CC}{'_' * 61}\n")
 
-    if pairip_soft and keep_unsigned:
-        print(f'\n{C.FYI}{C.C} PairIP unsigned path (-u): install in VM / Multi_App\n')
-    elif pairip_soft:
-        print(f'\n{C.FYI}{C.C} PairIP soft + signed (no-root). If crash, retry with {C.G}-u{C.C} in VM/MultiApp\n')
+    if pairip_unsigned:
+        print(f'\n{C.FYI}{C.C} PairIP APK — keep unsigned (CRC). Install in VM / Multi_App\n')
+    elif args.unsigned_apk:
+        print(f'\n{C.FYI}{C.C} Unsigned path (-u): install in VM / Multi_App\n')
 
     print(f'\n{C.S} Time Spent {C.E} {C.G}︻デ═一 {C.PN}{M.time.time() - start_time:.2f} {C.CC}Seconds {C.G} ✔\n')
 

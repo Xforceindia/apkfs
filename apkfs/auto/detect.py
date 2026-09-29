@@ -19,6 +19,7 @@ class Detection:
     has_arm64: bool = False
     has_flutter: bool = False
     has_pairip: bool = False
+    has_pairip_lib: bool = False  # libpairipcore.so only (ApkPatcher Scan parity)
     has_okhttp: bool = False
     has_firebase: bool = False
     has_unity: bool = False
@@ -94,6 +95,7 @@ def detect(path: Path) -> Detection:
                 d.has_flutter = True
             if base == "libpairipcore.so":
                 d.has_pairip = True
+                d.has_pairip_lib = True
             if "unity" in base.lower() or base.startswith("libil2cpp"):
                 d.has_unity = True
             if "firebase" in base.lower():
@@ -236,6 +238,7 @@ def detect(path: Path) -> Detection:
                                         d.has_flutter = True
                                     if parts[-1] == "libpairipcore.so":
                                         d.has_pairip = True
+                                        d.has_pairip_lib = True
                             if not d.has_pairip or not d.has_flutter:
                                 for x in names2:
                                     if not x.lower().endswith(".dex"):

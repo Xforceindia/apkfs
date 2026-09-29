@@ -82,13 +82,7 @@ def Smali_Patch(decompile_dir, smali_folders, isAPKEditor, CA_Cert, isID, isPair
         (
             r'(invoke-virtual \{[^\}]*\}, Landroid/content/pm/PackageManager;->getInstallerPackageName\(Ljava/lang/String;\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)',
             r'\1const-string \2, "com.android.vending"',
-            "Fixed Installer (getInstallerPackageName → Play Store)"
-        ),
-        # Android 11+ InstallSourceInfo field reads
-        (
-            r'(invoke-virtual \{[^\}]*\}, Landroid/content/pm/InstallSourceInfo;->(?:getInstallingPackageName|getInitiatingPackageName|getOriginatingPackageName)\(\)Ljava/lang/String;[^>]*?)move-result-object ([pv]\d+)',
-            r'\1const-string \2, "com.android.vending"',
-            "Fixed Installer (InstallSourceInfo → Play Store)"
+            "Fixed Installer"
         ),
 
         # ---------------- SSL BYPASS ( MITM ) ----------------
@@ -179,37 +173,25 @@ def Smali_Patch(decompile_dir, smali_folders, isAPKEditor, CA_Cert, isID, isPair
         )
 
 
-    # ---------------- isPairip ----------------
-    if isPairip:  # soft path even without libpairipcore.so (dex-only PairIP)
+    # ---------------- isPairip (ApkPatcher: only when libpairipcore.so present) ----------------
+    if isPairip and isPairip_lib:
         patterns.extend(
             [
-                # comment-out invoke (keep line structure valid — full-line replace via later nop-style)
                 (
                     r'invoke-static \{[^\}]*\}, Lcom/pairip/SignatureCheck;->verifyIntegrity\(Landroid/content/Context;\)V',
-                    r'nop',
-                    "PairIP verifyIntegrity invoke nop"
+                    r'#',
+                    "VerifyIntegrity"
                 ),
                 (
-                    r'invoke-static \{[^\}]*\}, Lcom/pairip/[^;]+;->(?:verifyIntegrity|checkIntegrity|authenticate)\([^)]*\)V',
-                    r'nop',
-                    "PairIP integrity invoke nop"
-                ),
-                # empty method bodies properly (capture entire method)
-                (
-                    r'(\n\.method [^(]*verifyIntegrity\([^)]*\)V\s+\.locals \d+)[\s\S]*?(\n\.end method)',
-                    r'\1\n    return-void\2',
-                    "PairIP verifyIntegrity method empty"
+                    r'(\.method [^(]*verifyIntegrity\(Landroid/content/Context;\)V\s+.locals \d+)[\s\S]*?(\s+return-void\n.end method)',
+                    r'\1\2',
+                    "VerifyIntegrity"
                 ),
                 (
-                    r'(\n\.method [^(]*verifySignatureMatches\([^)]*\)Z\s+\.locals \d+)[\s\S]*?(\n\.end method)',
-                    r'\1\n    const/4 v0, 0x1\n    return v0\2',
-                    "PairIP verifySignatureMatches → true"
-                ),
-                (
-                    r'(\n\.method [^(]*checkIntegrity\([^)]*\)V\s+\.locals \d+)[\s\S]*?(\n\.end method)',
-                    r'\1\n    return-void\2',
-                    "PairIP checkIntegrity method empty"
-                ),
+                    r'(\.method [^(]*verifySignatureMatches\(Ljava/lang/String;\)Z\s+.locals \d+\s+)[\s\S]*?(\s+return ([pv]\d+)\n.end method)',
+                    r'\1const/4 \3, 0x1\2',
+                    "verifySignatureMatches"
+                )
             ]
         )
 

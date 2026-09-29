@@ -24,6 +24,10 @@ def run_auto(
     force_corex: bool = False,
     use_apkeditor: bool = False,
     keep_unsigned: bool = False,
+    # ApkPatcher-parity: extras OFF unless requested
+    want_ads: bool = False,
+    want_usb_ss: bool = False,
+    want_support: bool = False,
     no_ads: bool = False,
     no_usb_ss: bool = False,
     boom: bool = False,
@@ -65,9 +69,9 @@ def run_auto(
         certs=certs,
         merge_only=merge_only,
         force_corex=force_corex,
-        enable_ads=not no_ads,
-        enable_usb_ss=not no_usb_ss,
-        enable_support=not no_support,
+        enable_ads=bool(want_ads or boom) and not no_ads,
+        enable_usb_ss=bool(want_usb_ss or boom) and not no_usb_ss,
+        enable_support=bool(want_support or boom) and not no_support,
         enable_unlock=unlock or boom,
         boom=boom,
         experimental=experimental,
@@ -216,21 +220,32 @@ def run_auto(
         pass
     try:
         from apkfs.engine.Patch.Support_Pack import support_score
-        report["working_score"] = support_score(
-            {
-                "pairip": det.has_pairip,
-                "flutter": det.has_flutter,
-                "has_ads": getattr(det, "has_ads", False),
-                "billing": getattr(det, "has_billing", False),
-                "lvl": getattr(det, "has_lvl", False),
-            },
-            report.get("support_stats"),
-        )
-        ws = report["working_score"]
-        print(f"\n  ▶ working score : {ws['score'].upper()}  ({ws['hits']} support hits)")
-        for rsn in ws.get("reasons", []):
-            print(f"      · {rsn}")
-        print(f"      · {ws.get('note')}")
+        used_support = bool(plan.engine_flags.get("Support_Pack") or plan.engine_flags.get("Purchase"))
+        if used_support or report.get("support_stats"):
+            report["working_score"] = support_score(
+                {
+                    "pairip": det.has_pairip,
+                    "flutter": det.has_flutter,
+                    "has_ads": getattr(det, "has_ads", False),
+                    "billing": getattr(det, "has_billing", False),
+                    "lvl": getattr(det, "has_lvl", False),
+                },
+                report.get("support_stats"),
+            )
+            ws = report["working_score"]
+            print(f"\n  ▶ working score : {ws['score'].upper()}  ({ws['hits']} support hits)")
+            for rsn in ws.get("reasons", []):
+                print(f"      · {rsn}")
+            print(f"      · {ws.get('note')}")
+        else:
+            report["working_score"] = {
+                "score": "ok",
+                "hits": 0,
+                "reasons": ["ApkPatcher-parity core (SSL/VPN/NSC); Support_Pack not enabled"],
+                "note": "Add --support or --boom for LVL/installer score. PairIP lib uses unsigned path.",
+            }
+            print("\n  ▶ mode : ApkPatcher-parity core (SSL/NSC/Flutter) — no Support_Pack")
+            print("      · extras: -rmads -rmss -rmusb --support | super: --boom")
     except Exception as e:
         report["working_score_error"] = str(e)
     (report_dir / "report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")

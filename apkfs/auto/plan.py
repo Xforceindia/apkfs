@@ -35,9 +35,10 @@ def build_plan(
     certs: list[Path] | None = None,
     merge_only: bool = False,
     force_corex: bool = False,
-    enable_ads: bool = True,
-    enable_usb_ss: bool = True,
-    enable_support: bool = True,
+    # ApkPatcher-parity plain -i: SSL/VPN/NSC only. Extras via flags / --boom
+    enable_ads: bool = False,
+    enable_usb_ss: bool = False,
+    enable_support: bool = False,
     enable_unlock: bool = False,
     boom: bool = False,
     experimental: bool = False,
@@ -45,9 +46,10 @@ def build_plan(
     """
     Decide everything automatically.
 
-    Default lab preset (safe + useful):
-      merge (if split) → SSL/VPN smali → NSC/cert → flutter if needed
-      → pairip soft path if needed → sign
+    Default (ApkPatcher-compatible plain -i):
+      merge (if split) → SSL/VPN smali → NSC/cert → Flutter -f if libflutter
+      → PairIP -p if libpairipcore (unsigned CRC) → sign otherwise
+    Extras (ads/usb/ss/support/unlock) only with flags or --boom
     """
     p = Plan()
     flags: dict[str, Any] = {
@@ -118,24 +120,29 @@ def build_plan(
         p.confidence = min(p.confidence, 0.75)
         p.warnings.append("Flutter patterns depend on Dart engine version — may need updates")
 
-    # PairIP auto
-    if det.has_pairip:
+    # PairIP auto — ApkPatcher Scan only treats libpairipcore.so as PairIP
+    has_pairip_lib = bool(getattr(det, "has_pairip_lib", False) or (
+        det.has_pairip and any("libpairipcore" in (n or "").lower() for n in getattr(det, "native_libs", []))
+    ))
+    if not has_pairip_lib and det.has_pairip:
+        p.warnings.append(
+            "pairip dex/app-class markers without libpairipcore.so — plain -i skips -p (ApkPatcher-same)"
+        )
+    if has_pairip_lib:
         flags["Pairip"] = True
-        p.reasons.append("detected libpairipcore.so / pairip")
+        p.reasons.append("detected libpairipcore.so")
         if force_corex or (experimental and det.has_arm64 and det.is_split):
             flags["Hook_CoreX"] = True
-            p.strategies.append("PairIP CoreX experimental hook (arm64 + split)")
+            flags["unsigned_apk"] = False
+            p.strategies.append("PairIP CoreX hook (arm64) — signed install")
             p.warnings.append("CoreX is unstable — app may crash; server integrity still applies")
             p.confidence = min(p.confidence, 0.45)
         else:
-            # Soft path: pairip smali + SIGN for no-root sideload (integrity softened).
-            # Pass -u for classic unsigned/CRC VM path.
-            flags["unsigned_apk"] = False
-            p.strategies.append("PairIP smali integrity soften + signed APK (no-root sideload)")
-            p.warnings.append(
-                "PairIP soft+signed: if crash on device, retry with -u (VM/MultiApp) or --corex"
-            )
-            p.confidence = min(p.confidence, 0.6)
+            # ApkPatcher: -p without -x → unsigned CRC (VM / MultiApp)
+            flags["unsigned_apk"] = True
+            p.strategies.append("PairIP soft (-p): unsigned CRC APK (VM / Multi_App) — ApkPatcher-same")
+            p.warnings.append("PairIP unsigned: install in VM/MultiApp; or try -p -x CoreX on arm64")
+            p.confidence = min(p.confidence, 0.55)
 
     if det.is_split:
         p.strategies.insert(0, "anti-split merge (.apks/.apkm/.xapk → apk)")

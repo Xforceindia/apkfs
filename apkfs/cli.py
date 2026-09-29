@@ -34,11 +34,12 @@ examples (same spirit as ApkPatcher -i):
   apkfs -i app.apk --fast
   apkfs doctor
 
-default -i AUTO pack (like ApkPatcher -i — no extra flags needed):
-  SSL/VPN/NSC · ads remove · LVL/signature/Play Store support · Flutter/PairIP if detected · sign
+default -i AUTO pack (ApkPatcher-same core):
+  SSL/VPN/NSC · Flutter -f / PairIP -p if libs detected · sign
+  PairIP+lib → unsigned CRC (VM) like ApkPatcher -p; else signed
   auto APKEditor fallback if apktool fails
-  output: <name>_Patched.apk  (next to input)
-  spaces OK:  apkfs -i Numberbox.apk  |  apkfs -i "Number Box.apk"
+  NOT default: ads / USB-SS / Support_Pack (use -rmads -rmss -rmusb --support or --boom)
+  output: <name>_Patched.apk  · spaces OK: apkfs -i Numberbox.apk
 
 {BRAND}
 """,
@@ -60,17 +61,18 @@ default -i AUTO pack (like ApkPatcher -i — no extra flags needed):
     p.add_argument("-p", action="store_true", dest="force_pairip", help="Force PairIP pack")
     p.add_argument("-x", action="store_true", dest="corex", help="PairIP CoreX (with pairip)")
     p.add_argument("-P", action="store_true", dest="purchase", help="Client purchase/premium heuristics")
-    p.add_argument("-rmads", action="store_true", dest="rmads_flag", help=argparse.SUPPRESS)
-    p.add_argument("-rmss", action="store_true", dest="rmss_flag", help=argparse.SUPPRESS)
-    p.add_argument("-rmusb", action="store_true", dest="rmusb_flag", help=argparse.SUPPRESS)
+    p.add_argument("-rmads", action="store_true", dest="rmads_flag", help="Remove ads (ApkPatcher -rmads)")
+    p.add_argument("-rmss", action="store_true", dest="rmss_flag", help="Bypass screenshot restrict")
+    p.add_argument("-rmusb", action="store_true", dest="rmusb_flag", help="Bypass USB debugging detect")
 
     p.add_argument("--dry-run", action="store_true", help="Detect + plan only")
     p.add_argument("--fast", action="store_true", help="Faster decompile (only-main-classes; may miss secondary dex)")
-    p.add_argument("--boom", action="store_true", help="Super pack + client unlock")
+    p.add_argument("--boom", action="store_true", help="Super pack: ads+usb/ss+support+unlock")
     p.add_argument("--unlock", action="store_true", help="Client unlock heuristics")
-    p.add_argument("--no-support", action="store_true", help="Skip LVL/signature support pack")
-    p.add_argument("--no-ads", action="store_true", help="Keep ads")
-    p.add_argument("--no-usb-ss", action="store_true", help="Skip USB/screenshot patches")
+    p.add_argument("--support", action="store_true", dest="support", help="LVL/signature/installer Support_Pack")
+    p.add_argument("--no-support", action="store_true", help="Disable support even with --boom")
+    p.add_argument("--no-ads", action="store_true", help="Disable ads pack even with --boom")
+    p.add_argument("--no-usb-ss", action="store_true", help="Disable USB/SS even with --boom")
     p.add_argument("--quiet", action="store_true", help="Less auto-plan chatter (classic engine logs)")
     p.add_argument("--report-dir", type=str, help="Report folder")
     p.add_argument("-v", "--verbose", action="store_true", help="Verbose")
@@ -238,6 +240,9 @@ def main(argv: list[str] | None = None) -> int:
             force_corex=bool(getattr(args, "corex", False)),
             use_apkeditor=bool(getattr(args, "apkeditor", False)),
             keep_unsigned=bool(getattr(args, "unsigned", False)),
+            want_ads=bool(getattr(args, "rmads_flag", False)),
+            want_usb_ss=bool(getattr(args, "rmss_flag", False) or getattr(args, "rmusb_flag", False)),
+            want_support=bool(getattr(args, "support", False)),
             no_ads=bool(getattr(args, "no_ads", False)),
             no_usb_ss=bool(getattr(args, "no_usb_ss", False)),
             boom=bool(getattr(args, "boom", False)),
